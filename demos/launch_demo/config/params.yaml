@@ -1,0 +1,8 @@
+/**:
+  sensor_pipeline:
+    cpp_talker_node:
+      ros__parameters:
+        publish_frequency: 3.0
+    py_listener_node:
+      ros__parameters:
+        log_level: "INFO"
