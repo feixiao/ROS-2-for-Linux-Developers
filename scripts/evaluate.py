@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
-Advanced Evaluation Harness for ROS 2 Handbook for Linux Developers (Segment 2).
+Advanced Evaluation Harness for ROS 2 Handbook for Linux Developers (Segment 3).
 Evaluates:
 1. Documentation structure and coverage of Linux-to-ROS2 concepts.
-2. Lifecycle nodes and ROSIDL code generator coverage.
+2. Production Hardening: Real-Time PREEMPT_RT, SROS2 DDS Security, Hardware Udev/CAN, Rosbag MCAP.
 3. Demo package integrity (CMakeLists.txt, package.xml, Python/C++ sources).
 4. Custom Interfaces (.msg / .srv / .action) and rosidl build pipeline.
 5. Component Composition (rclcpp_components & dlopen container).
-6. Linux Developer Ergonomics (Makefile, tasks, scripts).
-7. Runtime execution of Python demos via mock ROS 2 runtime.
+6. Lifecycle Node Package (rclcpp_lifecycle::LifecycleNode state callbacks).
+7. Linux Developer Ergonomics (Makefile, tasks, scripts).
+8. Runtime execution of Python demos via mock ROS 2 runtime.
 """
 
 import os
@@ -72,6 +73,26 @@ REQUIRED_TOPICS = {
         "keywords": ["lifecycle", "生命周期", "unconfigured", "inactive", "active", "finalized", "状态机"],
         "weight": 1.0,
         "description": "Managed Lifecycle Nodes and state machine transitions"
+    },
+    "realtime_preempt_rt": {
+        "keywords": ["preempt_rt", "mlockall", "page fault", "缺页", "cyclictest", "tlsf", "实时", "sched_fifo"],
+        "weight": 1.0,
+        "description": "Linux PREEMPT_RT real-time kernel, memory locking, and latency determinism"
+    },
+    "sros2_security": {
+        "keywords": ["sros", "security", "x.509", "pki", "keystore", "安全", "加密", "ros_security_enable"],
+        "weight": 1.0,
+        "description": "DDS Security (SROS2), PKI authentication, encryption, and access control"
+    },
+    "hardware_udev_can": {
+        "keywords": ["udev", "socketcan", "can0", "rules.d", "波特率", "termios", "硬件", "串口"],
+        "weight": 1.0,
+        "description": "Linux hardware integration (Udev rules, SocketCAN, serial low latency)"
+    },
+    "rosbag_mcap": {
+        "keywords": ["ros2 bag", "mcap", "sqlite3", "zstd", "录制", "回放", "rosbag2", "数据集"],
+        "weight": 1.0,
+        "description": "Data logging and replay pipeline with MCAP and SQLite3 storage"
     }
 }
 
@@ -141,7 +162,7 @@ def evaluate_docs():
     }
 
 def evaluate_demos():
-    """Score demo files: package.xml, CMakeLists.txt, Python AST, C++ patterns, Launch files, IDL, Components."""
+    """Score demo files: package.xml, CMakeLists.txt, Python AST, C++ patterns, Launch files, IDL, Components, Lifecycle."""
     results = {
         "package_xml_valid": 0,
         "package_xml_total": 0,
@@ -157,6 +178,7 @@ def evaluate_demos():
         "dockerfiles_total": 0,
         "custom_interfaces_valid": 0,
         "component_composition_valid": 0,
+        "lifecycle_node_valid": 0,
         "makefile_valid": 0
     }
 
@@ -227,9 +249,7 @@ def evaluate_demos():
     # 7. Custom Interfaces check (.msg / .srv / .action)
     msg_files = list(DEMOS_DIR.glob("**/*.msg"))
     srv_files = list(DEMOS_DIR.glob("**/*.srv"))
-    action_files = list(DEMOS_DIR.glob("**/*.action"))
     if msg_files and srv_files:
-        # Check if CMakeLists uses rosidl_default_generators
         idl_cmake = any("rosidl_default_generators" in cm.read_text(encoding="utf-8", errors="ignore") 
                         for cm in DEMOS_DIR.glob("**/CMakeLists.txt"))
         if idl_cmake:
@@ -241,7 +261,14 @@ def evaluate_demos():
     if comp_cpp:
         results["component_composition_valid"] = 1
 
-    # 9. Makefile check
+    # 9. Lifecycle Node check
+    lc_cpp = any("LifecycleNode" in cpp.read_text(encoding="utf-8", errors="ignore") and
+                 "on_configure" in cpp.read_text(encoding="utf-8", errors="ignore")
+                 for cpp in DEMOS_DIR.glob("**/*.cpp"))
+    if lc_cpp:
+        results["lifecycle_node_valid"] = 1
+
+    # 10. Makefile check
     makefile = ROOT_DIR / "Makefile"
     if makefile.exists():
         mf_content = makefile.read_text(encoding="utf-8", errors="ignore")
@@ -308,7 +335,7 @@ def main():
     # Demo completeness score (0-100)
     # Expected artifacts:
     # 3+ package.xml, 2+ CMakeLists.txt, 2+ python nodes, 2+ cpp files, 1+ launch file, 1+ Dockerfile,
-    # custom interfaces package, component composition package, Makefile
+    # custom interfaces package, component composition package, lifecycle node package, Makefile
     expected_artifacts = [
         demo_res["package_xml_valid"] >= 3,
         demo_res["cmakelists_valid"] >= 2,
@@ -318,13 +345,14 @@ def main():
         demo_res["dockerfiles_valid"] >= 1,
         demo_res["custom_interfaces_valid"] == 1,
         demo_res["component_composition_valid"] == 1,
+        demo_res["lifecycle_node_valid"] == 1,
         demo_res["makefile_valid"] == 1
     ]
     demo_completeness = (sum(1 for x in expected_artifacts if x) / len(expected_artifacts)) * 100.0
 
-    # Word count maturity score (0-100, targeting 14,000+ words)
+    # Word count maturity score (0-100, targeting 17,000+ words)
     word_count = doc_res["word_count"]
-    word_count_score = min(100.0, (word_count / 14000.0) * 100.0)
+    word_count_score = min(100.0, (word_count / 17000.0) * 100.0)
 
     # Composite primary score (0-100)
     composite_score = (
@@ -345,16 +373,17 @@ def main():
     print(f"METRIC word_count={word_count}")
 
     # Summary
-    print("\n--- Advanced Evaluation Breakdown ---")
+    print("\n--- Advanced Evaluation Breakdown (Segment 3) ---")
     print(f"Total Words: {word_count}")
     print(f"Markdown Files: {doc_res.get('file_count', 0)}")
     print(f"Topic Coverage: {topic_cov:.1f}%")
     print(f"Custom Interfaces (.msg/.srv): {'YES' if demo_res['custom_interfaces_valid'] else 'NO'}")
     print(f"Component Composition (.so/dlopen): {'YES' if demo_res['component_composition_valid'] else 'NO'}")
+    print(f"Lifecycle Node (.hpp/.cpp): {'YES' if demo_res['lifecycle_node_valid'] else 'NO'}")
     print(f"Developer Makefile: {'YES' if demo_res['makefile_valid'] else 'NO'}")
     print(f"Package XMLs: {demo_res['package_xml_valid']}/{demo_res['package_xml_total']}")
     print(f"CMakeLists: {demo_res['cmakelists_valid']}/{demo_res['cmakelists_total']}")
-    print("-------------------------------------")
+    print("-------------------------------------------------")
 
     return 0
 
