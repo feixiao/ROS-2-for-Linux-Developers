@@ -32,19 +32,23 @@ fi
 
 # 2. 检查内存与 Swap 状态
 info "2. 内存与虚拟内存状态"
-TOTAL_RAM_MB=$(free -m | awk '/^Mem:/{print $2}')
-AVAIL_RAM_MB=$(free -m | awk '/^Mem:/{print $7}')
-if [ "${AVAIL_RAM_MB}" -gt 1024 ]; then
-  pass "可用物理内存充足: ${AVAIL_RAM_MB}MB / ${TOTAL_RAM_MB}MB"
-else
-  warn "可用物理内存较低: ${AVAIL_RAM_MB}MB / ${TOTAL_RAM_MB}MB"
-fi
+if command -v free >/dev/null 2>&1; then
+  TOTAL_RAM_MB=$(free -m | awk '/^Mem:/{print $2}')
+  AVAIL_RAM_MB=$(free -m | awk '/^Mem:/{print $7}')
+  if [ -n "${AVAIL_RAM_MB}" ] && [ "${AVAIL_RAM_MB}" -gt 1024 ]; then
+    pass "可用物理内存充足: ${AVAIL_RAM_MB}MB / ${TOTAL_RAM_MB}MB"
+  else
+    warn "可用物理内存较低: ${AVAIL_RAM_MB}MB / ${TOTAL_RAM_MB}MB"
+  fi
 
-SWAP_USED_MB=$(free -m | awk '/^Swap:/{print $3}')
-if [ "${SWAP_USED_MB}" -eq 0 ]; then
-  pass "系统未发生 Swap 内存换页 (零 Swap)"
+  SWAP_USED_MB=$(free -m | awk '/^Swap:/{print $3}')
+  if [ -n "${SWAP_USED_MB}" ] && [ "${SWAP_USED_MB}" -eq 0 ]; then
+    pass "系统未发生 Swap 内存换页 (零 Swap)"
+  else
+    warn "检测到 Swap 内存换页使用: ${SWAP_USED_MB}MB (可能引入偶发延迟抖动)"
+  fi
 else
-  warn "检测到 Swap 内存换页使用: ${SWAP_USED_MB}MB (可能引入偶发延迟抖动)"
+  pass "非标准 Linux 环境或无 free 工具，已跳过内存详细比对"
 fi
 
 # 3. 检查 DDS 与网络内核参数 (sysctl)
