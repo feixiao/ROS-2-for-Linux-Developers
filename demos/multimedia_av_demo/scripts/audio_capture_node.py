@@ -29,9 +29,9 @@ class AudioCaptureNode(Node):
         self.declare_parameter('channels', 1)
         self.declare_parameter('chunk_size', 1024)
 
-        self.rate = self.get_parameter('sample_rate').as_int()
-        self.channels = self.get_parameter('channels').as_int()
-        self.chunk = self.get_parameter('chunk_size').as_int()
+        self.rate = self.get_parameter('sample_rate').value
+        self.channels = self.get_parameter('channels').value
+        self.chunk = self.get_parameter('chunk_size').value
 
         self.pub_ = self.create_publisher(UInt8MultiArray, 'audio/pcm_raw', 10)
 

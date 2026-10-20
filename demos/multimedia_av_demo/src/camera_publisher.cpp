@@ -26,14 +26,9 @@ public:
     double fps = this->get_parameter("frame_rate").as_double();
     frame_id_ = this->get_parameter("frame_id").as_string();
 
-    // 2. 初始化 image_transport 专用发布器 (自动生成 raw / compressed 话题)
-    image_transport::ImageTransport it(shared_from_this());
-    camera_pub_ = it.advertiseCamera("camera/image_raw", 10);
-
-    // 3. 构建模拟相机标定内参 (CameraInfo)
+    // 2. 构建模拟相机标定内参 (CameraInfo)
     setup_camera_info(width, height);
-
-    // 4. 定时器周期推流 (30 FPS)
+    // 3. 定时器周期推流 (30 FPS)
     auto timer_period = std::chrono::duration<double>(1.0 / fps);
     timer_ = this->create_wall_timer(
       std::chrono::duration_cast<std::chrono::nanoseconds>(timer_period),
@@ -99,11 +94,19 @@ private:
   sensor_msgs::msg::CameraInfo camera_info_;
   rclcpp::TimerBase::SharedPtr timer_;
   size_t count_;
+
+public:
+  void init_transport() {
+    // 在 make_shared 完成后安全调用 shared_from_this() 初始化传输层
+    image_transport::ImageTransport it(shared_from_this());
+    camera_pub_ = it.advertiseCamera("camera/image_raw", 10);
+  }
 };
 
 int main(int argc, char * argv[]) {
   rclcpp::init(argc, argv);
   auto node = std::make_shared<CameraPublisherNode>();
+  node->init_transport();
   rclcpp::spin(node);
   rclcpp::shutdown();
   return 0;

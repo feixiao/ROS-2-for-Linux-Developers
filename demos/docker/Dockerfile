@@ -11,6 +11,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-colcon-common-extensions \
     python3-pip \
     ros-humble-example-interfaces \
+    ros-humble-rclcpp-action \
+    ros-humble-rclcpp-components \
+    ros-humble-rclcpp-lifecycle \
+    ros-humble-tf2-ros \
+    ros-humble-tf2-geometry-msgs \
+    ros-humble-hardware-interface \
+    ros-humble-pluginlib \
+    ros-humble-image-transport \
+    ros-humble-cv-bridge \
     && rm -rf /var/lib/apt/lists/*
 
 # 创建工作空间并复制源码
