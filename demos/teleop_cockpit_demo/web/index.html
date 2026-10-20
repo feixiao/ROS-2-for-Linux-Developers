@@ -304,7 +304,7 @@
     <div class="status-bar">
       <div class="status-item">
         <span class="badge-live"></span>
-        <span style="color:#00ff66;">STREAM ONLINE</span>
+        <span id="protoBadge" style="color:#00ffcc; background:rgba(0,255,204,0.15); padding:2px 8px; border-radius:4px; font-size:0.8rem; border:1px solid #00ffcc;">NEGOTIATING...</span>
       </div>
       <div class="status-item">
         <span>RTT:</span>
@@ -325,6 +325,7 @@
         <span>RESOLUTION: 1280x720 30FPS</span>
       </div>
       <div class="video-wrapper">
+        <video id="remoteVideo" class="video-stream" autoplay playsinline muted style="display:none;"></video>
         <img id="streamImg" class="video-stream" src="/stream" alt="ROS 2 Teleoperation Camera Stream">
       </div>
     </div>
@@ -553,20 +554,91 @@
     }
     estopBtn.addEventListener('click', emergencyStop);
 
-    // 4. 发送控制指令与心跳
+    // 4. WebRTC 与控制信令核心通道
+    let pc = null;
+    let dataChannel = null;
     let lastSent = 0;
+
+    async function initWebRTC() {
+      const protoBadge = document.getElementById('protoBadge');
+      const remoteVideo = document.getElementById('remoteVideo');
+      const streamImg = document.getElementById('streamImg');
+
+      try {
+        pc = new RTCPeerConnection({
+          iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        });
+
+        // 创建 WebRTC DataChannel (用于传输手柄摇杆控制报文: UDP 零队头阻塞)
+        dataChannel = pc.createDataChannel('teleop_controls', {
+          ordered: false,
+          maxRetransmits: 0
+        });
+
+        dataChannel.onopen = () => {
+          console.log('[WebRTC] DataChannel connected!');
+          protoBadge.innerText = 'WebRTC P2P (UDP)';
+          protoBadge.style.color = '#00ffcc';
+          protoBadge.style.borderColor = '#00ffcc';
+        };
+
+        dataChannel.onclose = () => {
+          console.warn('[WebRTC] DataChannel closed, falling back to HTTP');
+          protoBadge.innerText = 'MJPEG Fallback (TCP)';
+          protoBadge.style.color = '#ffb703';
+          protoBadge.style.borderColor = '#ffb703';
+        };
+
+        // 接收来自机器人的原生 WebRTC 视频轨 (MediaStream)
+        pc.ontrack = (event) => {
+          console.log('[WebRTC] Video Track received!');
+          remoteVideo.srcObject = event.streams[0];
+          remoteVideo.style.display = 'block';
+          streamImg.style.display = 'none'; // 切换至硬加速 WebRTC 视频流
+        };
+
+        pc.addTransceiver('video', { direction: 'recvonly' });
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        const resp = await fetch('/offer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sdp: pc.localDescription.sdp, type: pc.localDescription.type })
+        });
+
+        if (resp.ok) {
+          const answer = await resp.json();
+          await pc.setRemoteDescription(answer);
+        } else {
+          throw new Error('WebRTC negotiation rejected by backend');
+        }
+      } catch (err) {
+        console.warn('[WebRTC] Negotiation failed, using fallback stream:', err);
+        protoBadge.innerText = 'MJPEG Stream (TCP)';
+        protoBadge.style.color = '#ffb703';
+        protoBadge.style.borderColor = '#ffb703';
+      }
+    }
+    window.addEventListener('load', initWebRTC);
+
     function sendControl(linear, angular, force = false) {
       linearVal.innerText = linear.toFixed(2);
       angularVal.innerText = angular.toFixed(2);
 
       const now = Date.now();
-      if (!force && now - lastSent < 45) return; // 约 20Hz 频率节流
+      if (!force && now - lastSent < 45) return;
       lastSent = now;
 
-      fetch(`/cmd?v=${linear}&w=${angular}`, { method: 'GET' }).catch(() => {});
+      // 优先走 WebRTC DataChannel (UDP 毫秒级投递)
+      if (dataChannel && dataChannel.readyState === 'open') {
+        dataChannel.send(JSON.stringify({ v: linear, w: angular }));
+      } else {
+        // 优雅降级走 HTTP /cmd 接口
+        fetch(`/cmd?v=${linear}&w=${angular}`, { method: 'GET' }).catch(() => {});
+      }
     }
 
-    // 持续高频保持心跳 (防止按住键不动时心跳断流)
     setInterval(() => {
       if (targetLinear !== 0 || targetAngular !== 0) {
         sendControl(targetLinear, targetAngular, true);
