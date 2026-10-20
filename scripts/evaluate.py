@@ -166,6 +166,11 @@ REQUIRED_TOPICS = {
         "keywords": ["slam", "cartographer", "slam_toolbox", "建图", "粒子滤波", "回环检测", "占用栅格"],
         "weight": 1.0,
         "description": "LiDAR SLAM mapping (Cartographer / Slam Toolbox), scan matching, and AMCL localization"
+    },
+    "audio_video_multimedia": {
+        "keywords": ["音视频", "audio", "video", "gstreamer", "webrtc", "image_transport", "cv_bridge", "pcm", "h.264", "h264"],
+        "weight": 1.0,
+        "description": "Industrial Audio/Video multimedia pipelines, hardware codecs, and multimodal streaming"
     }
 }
 
@@ -262,6 +267,7 @@ def evaluate_demos():
         "behavior_tree_demo_valid": 0,
         "ros2_control_demo_valid": 0,
         "nav2_demo_valid": 0,
+        "multimedia_av_demo_valid": 0,
         "makefile_valid": 0
     }
 
@@ -417,8 +423,13 @@ def evaluate_demos():
                    for f in DEMOS_DIR.glob("**/*nav2*/**/*.yaml"))
     if has_nav2:
         results["nav2_demo_valid"] = 1
+    # 20. Multimedia Audio/Video package
+    has_av = any(("multimedia" in f.name or "image_transport" in f.read_text(encoding="utf-8", errors="ignore"))
+                 for f in DEMOS_DIR.glob("**/*multimedia*/**/*.*"))
+    if has_av:
+        results["multimedia_av_demo_valid"] = 1
 
-    # 20. Makefile check
+    # 21. Makefile check
     makefile = ROOT_DIR / "Makefile"
     if makefile.exists():
         mf_content = makefile.read_text(encoding="utf-8", errors="ignore")
@@ -504,13 +515,14 @@ def main():
         demo_res["behavior_tree_demo_valid"] == 1,
         demo_res["ros2_control_demo_valid"] == 1,
         demo_res["nav2_demo_valid"] == 1,
+        demo_res["multimedia_av_demo_valid"] == 1,
         demo_res["makefile_valid"] == 1
     ]
     demo_completeness = (sum(1 for x in expected_artifacts if x) / len(expected_artifacts)) * 100.0
 
-    # Word count maturity score (0-100, targeting 35,000+ words)
+    # Word count maturity score (0-100, targeting 38,000+ words)
     word_count = doc_res["word_count"]
-    word_count_score = min(100.0, (word_count / 35000.0) * 100.0)
+    word_count_score = min(100.0, (word_count / 38000.0) * 100.0)
 
     # Composite primary score (0-100)
     composite_score = (
@@ -535,8 +547,8 @@ def main():
     print(f"Total Words: {word_count}")
     print(f"Markdown Files: {doc_res.get('file_count', 0)}")
     print(f"Topic Coverage: {topic_cov:.1f}%")
+    print(f"Multimedia AV Package: {'YES' if demo_res['multimedia_av_demo_valid'] else 'NO'}")
     print(f"Nav2 Navigation Package: {'YES' if demo_res['nav2_demo_valid'] else 'NO'}")
-    print(f"ros2_control Demo (.cpp): {'YES' if demo_res['ros2_control_demo_valid'] else 'NO'}")
     print(f"Behavior Tree Demo (.cpp): {'YES' if demo_res['behavior_tree_demo_valid'] else 'NO'}")
     print(f"tf2 Coordinate Transforms (.cpp): {'YES' if demo_res['tf2_demo_valid'] else 'NO'}")
     print(f"Systemd Service File: {'YES' if demo_res['systemd_service_valid'] else 'NO'}")

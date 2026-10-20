@@ -26,6 +26,7 @@ COPY cpp_tf2_demo /ros2_ws/src/cpp_tf2_demo
 COPY cpp_behavior_tree_demo /ros2_ws/src/cpp_behavior_tree_demo
 COPY cpp_ros2_control_demo /ros2_ws/src/cpp_ros2_control_demo
 COPY nav2_costmap_demo /ros2_ws/src/nav2_costmap_demo
+COPY multimedia_av_demo /ros2_ws/src/multimedia_av_demo
 COPY launch_demo /ros2_ws/src/launch_demo
 
 # 编译所有功能包
@@ -49,6 +50,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-humble-tf2-geometry-msgs \
     ros-humble-hardware-interface \
     ros-humble-pluginlib \
+    ros-humble-image-transport \
+    ros-humble-cv-bridge \
     && rm -rf /var/lib/apt/lists/*
 
 # 创建安全非 root 用户

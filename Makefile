@@ -64,6 +64,8 @@ lint: ## 检查 Python 与 C++ 代码规范
 	python3 -m py_compile demos/py_topic_demo/py_topic_demo/*.py
 	python3 -m py_compile demos/launch_demo/launch/*.py
 	python3 -m py_compile demos/cpp_composition_demo/launch/*.py
+	python3 -m py_compile demos/multimedia_av_demo/scripts/*.py
+	python3 -m py_compile demos/multimedia_av_demo/launch/*.py
 	@echo ">>> 代码语法检查全部通过！"
 
 clean: ## 清理 colcon 构建缓存与中间产物 (build, install, log)

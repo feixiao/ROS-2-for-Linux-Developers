@@ -95,6 +95,12 @@
 +  - 全局路径规划（Smac Hybrid A* / NavFn）与高频局部轨迹追踪（DWB / GPU MPPI 控制器）
 +  - 激光雷达 SLAM 建图（扫描匹配与 Ceres 图优化回环）与 AMCL 自适应蒙特卡洛粒子滤波定位
 +  - 工业仓储 AGV 参数调优避坑秘籍：多边形 Footprint、动态障碍物清理与摆脱震荡恢复
+
+- **[第 15 章：工业级音视频流媒体、硬件编解码与多模态交互实战](docs/15_audio_video_and_multimodal_streaming.md)**
++  - 视频全链路：V4L2 采集、sensor_msgs/Image 内存步长 (step)、cv_bridge 零拷贝共享 (`toCvShare`)
++  - 图像传输优化：image_transport 插件分发体系、CameraInfo 标定与硬件去畸变
++  - 音频全链路：ALSA/PipeWire 麦克风阵列拓扑、16kHz 16-bit PCM 与 ASR/TTS 具身语音闭环
++  - 超低延迟远程驾驶：GStreamer 硬件编解码 (H.264)、WebRTC 直连 (延迟 < 80ms) 与 Web 监控
 ---
 
 ## 🛠️ 配套工业级 Demo 工程
@@ -115,6 +121,7 @@ demos/
 ├── cpp_ros2_control_demo/# C++ 实时硬件抽象工程 (SystemInterface 驱动与 URDF 闭环)
 ├── launch_demo/         # 生产级 Python Launch 编排工程 (含 YAML 注入与重映射)
 ├── nav2_costmap_demo/   # 工业级自主导航工程 (Nav2 Costmap2D、Smac 规划与 AMCL)
+├── multimedia_av_demo/  # 工业级音视频工程 (OpenCV/image_transport、GStreamer 与音频推流)
 └── docker/              # 开箱即用的 Dockerfile 与 docker-compose.yml 容器化环境
 ```
 
