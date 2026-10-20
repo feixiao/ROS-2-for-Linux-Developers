@@ -52,6 +52,11 @@
   - 硬件外设直通（激光雷达串口、USB 摄像头视频流与 GPU 权限）
   - Docker Compose 多节点编排与非 root 安全规范
 
+- **[第 8 章：工业级生产硬化：实时性、安全性、硬件驱动与数据管线](docs/08_production_hardening_and_realtime.md)**
+  - Linux PREEMPT_RT 实时内核调优、物理内存锁定（`mlockall`）与消除缺页异常
+  - SROS 2：DDS-Security 规范、X.509 证书体系与 AES-GCM-256 链路加密
+  - 硬件直连实践：Linux Udev 串口固化规则与 SocketCAN 汽车级总线接入
+  - 高吞吐数据流录制：MCAP 追加写容器架构与 Zstandard 工业级无损压缩
 ---
 
 ## 🛠️ 配套工业级 Demo 工程
@@ -66,6 +71,7 @@ demos/
 ├── py_topic_demo/       # Python 全能工程 (Topic, Service, Action 三合一)
 ├── cpp_service_demo/    # C++ 双向 RPC 服务工程 (加法计算与错误处理)
 ├── cpp_action_demo/     # C++ 动作服务器与客户端 (进度流反馈与取消支持)
+├── cpp_lifecycle_demo/  # C++ 托管生命周期工程 (LifecycleNode 确定性状态机)
 ├── launch_demo/         # 生产级 Python Launch 编排工程 (含 YAML 注入与重映射)
 └── docker/              # 开箱即用的 Dockerfile 与 docker-compose.yml 容器化环境
 ```

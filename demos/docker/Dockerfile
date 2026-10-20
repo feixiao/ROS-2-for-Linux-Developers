@@ -15,10 +15,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # 创建工作空间并复制源码
 WORKDIR /ros2_ws
+COPY custom_interfaces /ros2_ws/src/custom_interfaces
 COPY cpp_topic_demo /ros2_ws/src/cpp_topic_demo
 COPY py_topic_demo /ros2_ws/src/py_topic_demo
 COPY cpp_service_demo /ros2_ws/src/cpp_service_demo
 COPY cpp_action_demo /ros2_ws/src/cpp_action_demo
+COPY cpp_composition_demo /ros2_ws/src/cpp_composition_demo
+COPY cpp_lifecycle_demo /ros2_ws/src/cpp_lifecycle_demo
 COPY launch_demo /ros2_ws/src/launch_demo
 
 # 编译所有功能包
@@ -36,6 +39,8 @@ FROM ros:humble-ros-core AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-humble-example-interfaces \
     ros-humble-ros2launch \
+    ros-humble-rclcpp-components \
+    ros-humble-rclcpp-lifecycle \
     && rm -rf /var/lib/apt/lists/*
 
 # 创建安全非 root 用户
