@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """
-Advanced Evaluation Harness for ROS 2 Handbook for Linux Developers (Segment 3).
+Advanced Evaluation Harness for ROS 2 Handbook for Linux Developers (Segment 4).
 Evaluates:
 1. Documentation structure and coverage of Linux-to-ROS2 concepts.
 2. Production Hardening: Real-Time PREEMPT_RT, SROS2 DDS Security, Hardware Udev/CAN, Rosbag MCAP.
-3. Demo package integrity (CMakeLists.txt, package.xml, Python/C++ sources).
-4. Custom Interfaces (.msg / .srv / .action) and rosidl build pipeline.
-5. Component Composition (rclcpp_components & dlopen container).
-6. Lifecycle Node Package (rclcpp_lifecycle::LifecycleNode state callbacks).
-7. Linux Developer Ergonomics (Makefile, tasks, scripts).
-8. Runtime execution of Python demos via mock ROS 2 runtime.
+3. Quality Assurance: Automated testing pyramid (GTest, Pytest, launch_testing).
+4. Linux Kernel & Network Tuning: sysctl parameters (rmem_max, wmem_max, MTU/Jumbo Frames).
+5. Demo package integrity (CMakeLists.txt, package.xml, Python/C++ sources).
+6. Custom Interfaces (.msg / .srv / .action) and rosidl build pipeline.
+7. Component Composition (rclcpp_components & dlopen container).
+8. Lifecycle Node Package (rclcpp_lifecycle::LifecycleNode state callbacks).
+9. Integration Testing (launch_testing) and Unit Testing (GTest/Pytest).
+10. Linux Developer Ergonomics (Makefile, tasks, sysctl scripts).
 """
 
 import os
@@ -22,6 +24,7 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DOCS_DIR = ROOT_DIR / "docs"
 DEMOS_DIR = ROOT_DIR / "demos"
+SCRIPTS_DIR = ROOT_DIR / "scripts"
 
 REQUIRED_TOPICS = {
     "linux_mental_model": {
@@ -93,6 +96,16 @@ REQUIRED_TOPICS = {
         "keywords": ["ros2 bag", "mcap", "sqlite3", "zstd", "录制", "回放", "rosbag2", "数据集"],
         "weight": 1.0,
         "description": "Data logging and replay pipeline with MCAP and SQLite3 storage"
+    },
+    "testing_qa": {
+        "keywords": ["launch_testing", "gtest", "pytest", "集成测试", "单元测试", "colcon test", "测试金字塔"],
+        "weight": 1.0,
+        "description": "Automated testing pyramid, unit testing with GTest/Pytest, and launch_testing integration tests"
+    },
+    "kernel_sysctl_tuning": {
+        "keywords": ["sysctl", "rmem_max", "wmem_max", "套接字缓冲区", "mtu", "内核调优", "jumbo", "缓冲区"],
+        "weight": 1.0,
+        "description": "Linux kernel network tuning (sysctl socket buffers, UDP limits, MTU / Jumbo Frames)"
     }
 }
 
@@ -162,7 +175,7 @@ def evaluate_docs():
     }
 
 def evaluate_demos():
-    """Score demo files: package.xml, CMakeLists.txt, Python AST, C++ patterns, Launch files, IDL, Components, Lifecycle."""
+    """Score demo files: packages, sources, IDL, components, lifecycle, testing, sysctl configs."""
     results = {
         "package_xml_valid": 0,
         "package_xml_total": 0,
@@ -179,6 +192,9 @@ def evaluate_demos():
         "custom_interfaces_valid": 0,
         "component_composition_valid": 0,
         "lifecycle_node_valid": 0,
+        "launch_testing_valid": 0,
+        "unit_tests_valid": 0,
+        "sysctl_conf_valid": 0,
         "makefile_valid": 0
     }
 
@@ -268,7 +284,27 @@ def evaluate_demos():
     if lc_cpp:
         results["lifecycle_node_valid"] = 1
 
-    # 10. Makefile check
+    # 10. Integration Testing (launch_testing)
+    lt_files = any("launch_testing" in pyf.read_text(encoding="utf-8", errors="ignore")
+                   for pyf in DEMOS_DIR.glob("**/test*/**/*.py"))
+    if lt_files:
+        results["launch_testing_valid"] = 1
+
+    # 11. Unit Testing (GTest or Pytest)
+    has_gtest = any("gtest" in cpp.read_text(encoding="utf-8", errors="ignore")
+                    for cpp in DEMOS_DIR.glob("**/test*/**/*.cpp"))
+    has_pytest = any("pytest" in pyf.read_text(encoding="utf-8", errors="ignore") or
+                     "unittest" in pyf.read_text(encoding="utf-8", errors="ignore")
+                     for pyf in DEMOS_DIR.glob("**/test*/**/*.py"))
+    if has_gtest or has_pytest:
+        results["unit_tests_valid"] = 1
+
+    # 12. Linux sysctl configuration file
+    sysctl_files = list(SCRIPTS_DIR.glob("**/*sysctl*.conf")) + list(ROOT_DIR.glob("**/*sysctl*.conf"))
+    if sysctl_files and any("rmem_max" in f.read_text(encoding="utf-8", errors="ignore") for f in sysctl_files):
+        results["sysctl_conf_valid"] = 1
+
+    # 13. Makefile check
     makefile = ROOT_DIR / "Makefile"
     if makefile.exists():
         mf_content = makefile.read_text(encoding="utf-8", errors="ignore")
@@ -333,12 +369,13 @@ def main():
     analogy_score = doc_res["analogy_score"]
 
     # Demo completeness score (0-100)
-    # Expected artifacts:
-    # 3+ package.xml, 2+ CMakeLists.txt, 2+ python nodes, 2+ cpp files, 1+ launch file, 1+ Dockerfile,
-    # custom interfaces package, component composition package, lifecycle node package, Makefile
+    # Expected artifacts in Segment 4:
+    # 4+ package.xml, 3+ CMakeLists.txt, 2+ python nodes, 2+ cpp files, 1+ launch file, 1+ Dockerfile,
+    # custom interfaces package, component composition package, lifecycle node package,
+    # launch_testing integration test, unit test (GTest/Pytest), sysctl configuration file, Makefile
     expected_artifacts = [
-        demo_res["package_xml_valid"] >= 3,
-        demo_res["cmakelists_valid"] >= 2,
+        demo_res["package_xml_valid"] >= 4,
+        demo_res["cmakelists_valid"] >= 3,
         demo_res["python_ast_valid"] >= 2,
         demo_res["cpp_patterns_valid"] >= 2,
         demo_res["launch_files_valid"] >= 1,
@@ -346,13 +383,16 @@ def main():
         demo_res["custom_interfaces_valid"] == 1,
         demo_res["component_composition_valid"] == 1,
         demo_res["lifecycle_node_valid"] == 1,
+        demo_res["launch_testing_valid"] == 1,
+        demo_res["unit_tests_valid"] == 1,
+        demo_res["sysctl_conf_valid"] == 1,
         demo_res["makefile_valid"] == 1
     ]
     demo_completeness = (sum(1 for x in expected_artifacts if x) / len(expected_artifacts)) * 100.0
 
-    # Word count maturity score (0-100, targeting 17,000+ words)
+    # Word count maturity score (0-100, targeting 20,000+ words)
     word_count = doc_res["word_count"]
-    word_count_score = min(100.0, (word_count / 17000.0) * 100.0)
+    word_count_score = min(100.0, (word_count / 20000.0) * 100.0)
 
     # Composite primary score (0-100)
     composite_score = (
@@ -373,13 +413,16 @@ def main():
     print(f"METRIC word_count={word_count}")
 
     # Summary
-    print("\n--- Advanced Evaluation Breakdown (Segment 3) ---")
+    print("\n--- Advanced Evaluation Breakdown (Segment 4) ---")
     print(f"Total Words: {word_count}")
     print(f"Markdown Files: {doc_res.get('file_count', 0)}")
     print(f"Topic Coverage: {topic_cov:.1f}%")
     print(f"Custom Interfaces (.msg/.srv): {'YES' if demo_res['custom_interfaces_valid'] else 'NO'}")
     print(f"Component Composition (.so/dlopen): {'YES' if demo_res['component_composition_valid'] else 'NO'}")
     print(f"Lifecycle Node (.hpp/.cpp): {'YES' if demo_res['lifecycle_node_valid'] else 'NO'}")
+    print(f"Integration Tests (launch_testing): {'YES' if demo_res['launch_testing_valid'] else 'NO'}")
+    print(f"Unit Tests (GTest / Pytest): {'YES' if demo_res['unit_tests_valid'] else 'NO'}")
+    print(f"Kernel sysctl Config File: {'YES' if demo_res['sysctl_conf_valid'] else 'NO'}")
     print(f"Developer Makefile: {'YES' if demo_res['makefile_valid'] else 'NO'}")
     print(f"Package XMLs: {demo_res['package_xml_valid']}/{demo_res['package_xml_total']}")
     print(f"CMakeLists: {demo_res['cmakelists_valid']}/{demo_res['cmakelists_total']}")
