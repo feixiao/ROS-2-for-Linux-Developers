@@ -5,7 +5,7 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-.PHONY: help build clean test test-integration sysctl-apply docker-build docker-up docker-down lint
+.PHONY: help build clean test test-integration sysctl-apply check-health service-install docker-build docker-up docker-down lint
 
 help: ## 显示可用指令与说明 (Show help menu)
 	@echo "========================================================================"
@@ -35,6 +35,17 @@ sysctl-apply: ## 将高吞吐 ROS 2 DDS 内核网络参数应用到 Linux 系统
 	@echo ">>> 正在部署 Linux 内核网络优化参数 (需 sudo 权限)..."
 	sudo cp scripts/60-ros2-dds-sysctl.conf /etc/sysctl.d/
 	sudo sysctl --system
+
+check-health: ## 运行 Linux 机器人生产环境健康巡检脚本
+	@echo ">>> 正在执行机器人系统环境体检..."
+	bash scripts/robot_health_check.sh
+
+service-install: ## 安装并启用生产级 Systemd 守护进程 (需 sudo 权限)
+	@echo ">>> 正在安装 systemd 机器人核心服务..."
+	sudo cp scripts/ros2-robot.service /etc/systemd/system/
+	sudo systemctl daemon-reload
+	sudo systemctl enable ros2-robot.service
+	@echo ">>> 安装完成！使用 'sudo systemctl start ros2-robot.service' 启动。"
 
 docker-build: ## 构建生产级多阶段 ROS 2 Docker 镜像
 	@echo ">>> 正在构建多阶段 Docker 镜像..."

@@ -1,0 +1,43 @@
+[Unit]
+Description=ROS 2 Autonomous Robot Core Pipeline
+Documentation=https://github.com/frank/ros2_for_linux
+# 确保在网络就绪与系统时间同步完成后启动 (DDS 发现依赖精准时间戳)
+After=network.target network-online.target time-sync.target
+Wants=network-online.target time-sync.target
+
+[Service]
+Type=simple
+User=rosdev
+Group=rosdev
+WorkingDirectory=/home/rosdev/ros2_ws
+
+# 核心环境注入 (避免交互式 shell 加载问题)
+Environment="ROS_DOMAIN_ID=42"
+Environment="RMW_IMPLEMENTATION=rmw_cyclonedds_cpp"
+Environment="PYTHONUNBUFFERED=1"
+Environment="ROS_LOG_DIR=/var/log/ros2"
+
+# 优雅拉起守护进程
+ExecStart=/bin/bash -c '\
+  source /opt/ros/humble/setup.bash && \
+  source /home/rosdev/ros2_ws/install/setup.bash && \
+  exec ros2 launch launch_demo demo.launch.py'
+
+# 异常自愈与看门狗重启策略
+Restart=on-failure
+RestartSec=3s
+TimeoutStopSec=10s
+WatchdogSec=15s
+
+# Cgroups 生产级资源配额硬限制 (防止算法节点内存泄漏打爆系统)
+MemoryHigh=3500M
+MemoryMax=4096M
+CPUQuota=300%
+
+# Linux 标准日志输出集成至 journalctl
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ros2-robot-core
+
+[Install]
+WantedBy=multi-user.target

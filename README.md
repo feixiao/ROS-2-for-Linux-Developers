@@ -62,7 +62,13 @@
 +  - 机器人测试金字塔：GTest / Pytest 单元测试与 `launch_testing` 多进程端到端集成测试
 +  - 激光雷达与 4K 相机静默丢包根因复盘：UDP 套接字接收缓冲区溢出（`RcvbufErrors`）
 +  - Linux 内核网络栈 Sysctl 调优模版（`net.core.rmem_max` 扩大至 32MB、积压队列调优）
-+  - 万兆以太网巨型帧优化（Jumbo Frames MTU 9000），消除 80% IP 分片硬中断开销
+  - 万兆以太网巨型帧优化（Jumbo Frames MTU 9000），消除 80% IP 分片硬中断开销
+
+- **[第 10 章：集群运维、生产守护进程、Prometheus 可观测性与嵌入式 Linux](docs/10_systemd_observability_and_embedded.md)**
++  - 生产级 Systemd 守护进程与看门狗监管（`scripts/ros2-robot.service`、Cgroups 配额限制）
++  - 机器人车队可观测性：Prometheus Metrics Exporter（端口 9100）与 Grafana 监控大屏
++  - 嵌入式 Linux 裁切与交叉编译：Yocto Project（`meta-ros`）、Sysroot 与 aarch64 构建
++  - 自动化集群出厂健康体检脚本（`scripts/robot_health_check.sh`）
 ---
 
 ## 🛠️ 配套工业级 Demo 工程
@@ -74,7 +80,7 @@ demos/
 ├── custom_interfaces/   # 工业级 ROSIDL 接口工程 (自定义 .msg, .srv, .action)
 ├── cpp_composition_demo/# C++ 零拷贝组件化工程 (共享库 dlopen 动态加载)
 ├── cpp_topic_demo/      # C++ 高性能 Pub/Sub 工程 (含 QoS 与 Timer)
-├── py_topic_demo/       # Python 全能工程 (Topic, Service, Action 三合一)
+├── py_topic_demo/       # Python 全能工程 (Topic, Service, Action 三合一与 Prometheus Exporter)
 ├── cpp_service_demo/    # C++ 双向 RPC 服务工程 (加法计算与错误处理)
 ├── cpp_action_demo/     # C++ 动作服务器与客户端 (进度流反馈与取消支持)
 ├── cpp_lifecycle_demo/  # C++ 托管生命周期工程 (LifecycleNode 确定性状态机)
@@ -134,3 +140,32 @@ make docker-build  # 构建生产级多阶段瘦身镜像
 make docker-up     # 启动容器化集群
 make clean         # 清理 build / install / log 缓存
 ```
+
+---
+
+## ⚡ Linux 开发者专属 ROS 2 极速命令速查表 (Cheatsheet)
+
+针对习惯使用 Linux 终端工具链（`ps`, `kill`, `curl`, `lsof`, `tcpdump`, `systemctl`, `journalctl`）的开发者，以下是日常高频等价操作速查：
+
+| Linux 传统操作命令 | ROS 2 等价 CLI 命令 | 作用与功能说明 |
+| :--- | :--- | :--- |
+| `ps -ef \| grep node` | `ros2 node list` | 查看局域网内所有活跃的 ROS 2 逻辑节点 |
+| `kill -SIGTERM <PID>` | `ros2 lifecycle set <node> shutdown` | 优雅终结与注销托管生命周期节点 |
+| `ss -ulpn` / `netstat` | `ros2 topic list -t` | 检索当前网络上所有开放的话题通道与数据类型 |
+| `tcpdump -i eth0 -X` | `ros2 topic echo /topic_name` | 实时监听并打印指定话题的数据包明细 |
+| `iperf3 -u -b 100M` | `ros2 topic bw /sensor/camera` | 实时统计话题传输带宽与字节吞吐量 |
+| `ping -c 4 <HOST>` | `ros2 topic hz /sensor/imu` | 统计话题数据流到达的平均频率与微秒级抖动 |
+| `curl -X POST -d '{}'` | `ros2 service call /reset_srv std_srvs/srv/Trigger "{}"` | 发起单次同步/异步 RPC 请求并等待返回结果 |
+| `cat /etc/sysctl.conf` | `ros2 param dump /node_name` | 导出特定节点当前在内存中生效的全部动态参数 |
+| `sysctl -w key=val` | `ros2 param set /node_name max_speed 2.5` | 动态修改正在运行节点的参数（触发运行时校验） |
+| `systemctl status <srv>` | `ros2 lifecycle get /node_name` | 查询节点所处的当前生命周期状态（Inactive/Active） |
+| `journalctl -u <srv> -f` | `ros2 doctor --report` / 查看 `~/.ros/log/` | 检查 ROS 2 环境健康状态、中间件告警与运行日志 |
+| `nc -z -v <HOST> 7400` | `ros2 multicast receive` / `send` | 测试局域网交换机与防火墙是否允许 DDS 组播握手 |
+| `gdb <bin> core.dump` | `colcon test --ctest-args -V` | 深入分析崩溃调用栈并执行自动化测试套件 |
+| `taskset -cp <CPU> <PID>` | `chrt -f -p 99 <PID>` | 在 PREEMPT_RT 实时内核下绑定独立 CPU 并提升 FIFO 优先级 |
+
+---
+
+## 📄 开源许可证与技术支持
+
+本项目基于 **Apache-2.0 License** 开源。文档与工程代码均设计为开箱即用，可自由集成至商业化工业机器人、仓储 AGV、医疗设备与自动驾驶项目中。
