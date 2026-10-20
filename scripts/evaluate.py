@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """
-Evaluation Harness for ROS 2 Handbook for Linux Developers
+Advanced Evaluation Harness for ROS 2 Handbook for Linux Developers (Segment 2).
 Evaluates:
 1. Documentation structure and coverage of Linux-to-ROS2 concepts.
-2. Demo package integrity (CMakeLists.txt, package.xml, Python/C++ sources).
-3. Runtime execution of Python demos via mock ROS 2 runtime.
-4. Completeness and clarity of demos (C++, Python, Launch, Docker).
+2. Lifecycle nodes and ROSIDL code generator coverage.
+3. Demo package integrity (CMakeLists.txt, package.xml, Python/C++ sources).
+4. Custom Interfaces (.msg / .srv / .action) and rosidl build pipeline.
+5. Component Composition (rclcpp_components & dlopen container).
+6. Linux Developer Ergonomics (Makefile, tasks, scripts).
+7. Runtime execution of Python demos via mock ROS 2 runtime.
 """
 
 import os
@@ -59,6 +62,16 @@ REQUIRED_TOPICS = {
         "keywords": ["docker", "dockerfile", "container", "容器", "entrypoint", "compose", "volume", "network"],
         "weight": 1.0,
         "description": "Docker containerization and deployment for Linux environments"
+    },
+    "rosidl_custom_interfaces": {
+        "keywords": ["rosidl", "msg", "srv", "idl", "接口定义", "代码生成", "rosidl_default_generators"],
+        "weight": 1.0,
+        "description": "Custom IDL interfaces and automated code generation pipeline"
+    },
+    "lifecycle_nodes": {
+        "keywords": ["lifecycle", "生命周期", "unconfigured", "inactive", "active", "finalized", "状态机"],
+        "weight": 1.0,
+        "description": "Managed Lifecycle Nodes and state machine transitions"
     }
 }
 
@@ -87,7 +100,7 @@ def evaluate_docs():
             "topic_coverage": 0.0,
             "analogy_score": 0.0,
             "word_count": 0,
-            "details": ["No markdown documentation found."]
+            "file_count": 0
         }
 
     combined_text = ""
@@ -96,12 +109,11 @@ def evaluate_docs():
         try:
             content = p.read_text(encoding="utf-8")
             combined_text += "\n" + content
-            # Approximate word count: CJK characters + whitespace-split words
             cjk_count = len(re.findall(r'[\u4e00-\u9fff]', content))
             non_cjk = re.sub(r'[\u4e00-\u9fff]', ' ', content)
             latin_words = len(non_cjk.split())
             total_words += (cjk_count + latin_words)
-        except Exception as e:
+        except Exception:
             pass
 
     text_lower = combined_text.lower()
@@ -129,7 +141,7 @@ def evaluate_docs():
     }
 
 def evaluate_demos():
-    """Score demo files: package.xml, CMakeLists.txt, Python AST, C++ patterns, Launch files."""
+    """Score demo files: package.xml, CMakeLists.txt, Python AST, C++ patterns, Launch files, IDL, Components."""
     results = {
         "package_xml_valid": 0,
         "package_xml_total": 0,
@@ -142,7 +154,10 @@ def evaluate_demos():
         "launch_files_valid": 0,
         "launch_files_total": 0,
         "dockerfiles_valid": 0,
-        "dockerfiles_total": 0
+        "dockerfiles_total": 0,
+        "custom_interfaces_valid": 0,
+        "component_composition_valid": 0,
+        "makefile_valid": 0
     }
 
     if not DEMOS_DIR.exists():
@@ -171,11 +186,10 @@ def evaluate_demos():
 
     # 3. Python files check
     for pyf in DEMOS_DIR.glob("**/*.py"):
-        # skip setup.py / __init__.py for node analysis, but verify AST
         results["python_ast_total"] += 1
         try:
             code = pyf.read_text(encoding="utf-8")
-            parsed = ast.parse(code)
+            ast.parse(code)
             results["python_ast_valid"] += 1
         except Exception:
             pass
@@ -210,6 +224,30 @@ def evaluate_demos():
         except Exception:
             pass
 
+    # 7. Custom Interfaces check (.msg / .srv / .action)
+    msg_files = list(DEMOS_DIR.glob("**/*.msg"))
+    srv_files = list(DEMOS_DIR.glob("**/*.srv"))
+    action_files = list(DEMOS_DIR.glob("**/*.action"))
+    if msg_files and srv_files:
+        # Check if CMakeLists uses rosidl_default_generators
+        idl_cmake = any("rosidl_default_generators" in cm.read_text(encoding="utf-8", errors="ignore") 
+                        for cm in DEMOS_DIR.glob("**/CMakeLists.txt"))
+        if idl_cmake:
+            results["custom_interfaces_valid"] = 1
+
+    # 8. Component Composition check
+    comp_cpp = any("RCLCPP_COMPONENTS_REGISTER_NODE" in cpp.read_text(encoding="utf-8", errors="ignore")
+                   for cpp in DEMOS_DIR.glob("**/*.cpp"))
+    if comp_cpp:
+        results["component_composition_valid"] = 1
+
+    # 9. Makefile check
+    makefile = ROOT_DIR / "Makefile"
+    if makefile.exists():
+        mf_content = makefile.read_text(encoding="utf-8", errors="ignore")
+        if "colcon" in mf_content and "docker" in mf_content:
+            results["makefile_valid"] = 1
+
     return results
 
 def run_mock_runtime_tests():
@@ -217,17 +255,15 @@ def run_mock_runtime_tests():
     Simulates a runtime execution environment to test Python demo node logic.
     Provides a lightweight mock for rclpy and exercises node callbacks.
     """
-    test_score = 0
     max_tests = 4
     passed = 0
 
-    # Check if mock runner can run topic pub/sub logic
     py_nodes = list(DEMOS_DIR.glob("**/*talker*.py")) + list(DEMOS_DIR.glob("**/*publisher*.py"))
     sub_nodes = list(DEMOS_DIR.glob("**/*listener*.py")) + list(DEMOS_DIR.glob("**/*subscriber*.py"))
     srv_nodes = list(DEMOS_DIR.glob("**/*service*.py")) + list(DEMOS_DIR.glob("**/*server*.py"))
     action_nodes = list(DEMOS_DIR.glob("**/*action*.py"))
 
-    # Test 1: Talker/Publisher node existence and structure
+    # Test 1: Talker/Publisher node
     if py_nodes:
         try:
             code = py_nodes[0].read_text(encoding="utf-8")
@@ -236,7 +272,7 @@ def run_mock_runtime_tests():
         except Exception:
             pass
 
-    # Test 2: Listener/Subscriber node existence and structure
+    # Test 2: Listener/Subscriber node
     if sub_nodes:
         try:
             code = sub_nodes[0].read_text(encoding="utf-8")
@@ -245,7 +281,7 @@ def run_mock_runtime_tests():
         except Exception:
             pass
 
-    # Test 3: Service node existence and structure
+    # Test 3: Service node
     if srv_nodes:
         try:
             code = srv_nodes[0].read_text(encoding="utf-8")
@@ -254,7 +290,7 @@ def run_mock_runtime_tests():
         except Exception:
             pass
 
-    # Test 4: Action or Composed node structure
+    # Test 4: Action or Composed node
     if action_nodes or list(DEMOS_DIR.glob("**/*compose*")):
         passed += 1
 
@@ -265,35 +301,32 @@ def main():
     demo_res = evaluate_demos()
     runtime_score = run_mock_runtime_tests()
 
-    # Calculate sub-scores
+    # Sub-scores
     topic_cov = doc_res["topic_coverage"]
     analogy_score = doc_res["analogy_score"]
 
     # Demo completeness score (0-100)
-    # Expect at least:
-    # 2+ package.xml, 2+ CMakeLists.txt or setup.py, 2+ python nodes, 2+ cpp files, 1+ launch file, 1+ Dockerfile
+    # Expected artifacts:
+    # 3+ package.xml, 2+ CMakeLists.txt, 2+ python nodes, 2+ cpp files, 1+ launch file, 1+ Dockerfile,
+    # custom interfaces package, component composition package, Makefile
     expected_artifacts = [
-        demo_res["package_xml_valid"] >= 2,
-        demo_res["cmakelists_valid"] >= 1,
+        demo_res["package_xml_valid"] >= 3,
+        demo_res["cmakelists_valid"] >= 2,
         demo_res["python_ast_valid"] >= 2,
         demo_res["cpp_patterns_valid"] >= 2,
         demo_res["launch_files_valid"] >= 1,
-        demo_res["dockerfiles_valid"] >= 1
+        demo_res["dockerfiles_valid"] >= 1,
+        demo_res["custom_interfaces_valid"] == 1,
+        demo_res["component_composition_valid"] == 1,
+        demo_res["makefile_valid"] == 1
     ]
     demo_completeness = (sum(1 for x in expected_artifacts if x) / len(expected_artifacts)) * 100.0
 
-    # Word count maturity score (0-100)
-    # A thorough handbook should have at least 8,000 words/characters
+    # Word count maturity score (0-100, targeting 14,000+ words)
     word_count = doc_res["word_count"]
-    word_count_score = min(100.0, (word_count / 8000.0) * 100.0)
+    word_count_score = min(100.0, (word_count / 14000.0) * 100.0)
 
     # Composite primary score (0-100)
-    # Weights:
-    # - Topic coverage: 25%
-    # - Linux analogy & mental model depth: 20%
-    # - Demo code structure & completeness: 25%
-    # - Runtime & pattern verification: 15%
-    # - Content depth & word count maturity: 15%
     composite_score = (
         topic_cov * 0.25 +
         analogy_score * 0.20 +
@@ -312,16 +345,16 @@ def main():
     print(f"METRIC word_count={word_count}")
 
     # Summary
-    print("\n--- Evaluation Breakdown ---")
+    print("\n--- Advanced Evaluation Breakdown ---")
     print(f"Total Words: {word_count}")
     print(f"Markdown Files: {doc_res.get('file_count', 0)}")
+    print(f"Topic Coverage: {topic_cov:.1f}%")
+    print(f"Custom Interfaces (.msg/.srv): {'YES' if demo_res['custom_interfaces_valid'] else 'NO'}")
+    print(f"Component Composition (.so/dlopen): {'YES' if demo_res['component_composition_valid'] else 'NO'}")
+    print(f"Developer Makefile: {'YES' if demo_res['makefile_valid'] else 'NO'}")
     print(f"Package XMLs: {demo_res['package_xml_valid']}/{demo_res['package_xml_total']}")
     print(f"CMakeLists: {demo_res['cmakelists_valid']}/{demo_res['cmakelists_total']}")
-    print(f"Python Files (AST Valid): {demo_res['python_ast_valid']}/{demo_res['python_ast_total']}")
-    print(f"C++ ROS 2 Files: {demo_res['cpp_patterns_valid']}/{demo_res['cpp_patterns_total']}")
-    print(f"Launch Files: {demo_res['launch_files_valid']}/{demo_res['launch_files_total']}")
-    print(f"Dockerfiles: {demo_res['dockerfiles_valid']}/{demo_res['dockerfiles_total']}")
-    print("----------------------------")
+    print("-------------------------------------")
 
     return 0
 
