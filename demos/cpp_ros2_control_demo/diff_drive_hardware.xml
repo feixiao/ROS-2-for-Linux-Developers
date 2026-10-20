@@ -1,0 +1,9 @@
+<library path="diff_drive_hardware">
+  <class name="cpp_ros2_control_demo/DiffDriveHardware"
+         type="cpp_ros2_control_demo::DiffDriveHardware"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Industrial differential drive real-time hardware interface plugin for ROS 2.
+    </description>
+  </class>
+</library>

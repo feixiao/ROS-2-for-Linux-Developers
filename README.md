@@ -81,6 +81,12 @@
 +  - BehaviorTree.CPP 核心机制：Tick 调度驱动、黑板（Blackboard）变量共享与 XML 任务解耦
 +  - Linux 云端 3D 仿真与无头渲染：EGL 离屏硬件加速直通、NVIDIA Container Toolkit 配置
 +  - 虚实同构与仿真时钟（Sim-to-Real）：`/clock` 话题同步与超频加速测试验证
+
+- **[第 13 章：实时硬件抽象层（ros2_control）与机器人动力学闭环](docs/13_ros2_control_and_kinematics.md)**
++  - 1kHz 硬实时闭环架构：Controller Manager 实时线程、状态与命令接口指针直写
++  - 实时编码准则：消灭动态内存分配、规避阻塞互斥锁、无锁队列（Lock-Free RingBuffer）
++  - 机器人运动学建模：URDF/Xacro 刚体惯量张量矩阵与 `<ros2_control>` 硬件接口契约
++  - 运行时动态热切换控制器（Zero-Downtime Controller Switching）与 CLI 工具集
 ---
 
 ## 🛠️ 配套工业级 Demo 工程
@@ -98,6 +104,7 @@ demos/
 ├── cpp_lifecycle_demo/  # C++ 托管生命周期工程 (LifecycleNode 确定性状态机)
 ├── cpp_tf2_demo/        # C++ 空间坐标变换工程 (动态/静态广播器与查询监听器)
 ├── cpp_behavior_tree_demo/# C++ 行为树决策总控工程 (BehaviorTree.CPP 响应式调度)
+├── cpp_ros2_control_demo/# C++ 实时硬件抽象工程 (SystemInterface 驱动与 URDF 闭环)
 ├── launch_demo/         # 生产级 Python Launch 编排工程 (含 YAML 注入与重映射)
 └── docker/              # 开箱即用的 Dockerfile 与 docker-compose.yml 容器化环境
 ```
