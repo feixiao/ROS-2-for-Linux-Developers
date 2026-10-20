@@ -57,6 +57,12 @@
   - SROS 2：DDS-Security 规范、X.509 证书体系与 AES-GCM-256 链路加密
   - 硬件直连实践：Linux Udev 串口固化规则与 SocketCAN 汽车级总线接入
   - 高吞吐数据流录制：MCAP 追加写容器架构与 Zstandard 工业级无损压缩
+
+- **[第 9 章：质量工程金字塔与 Linux 内核级网络调优](docs/09_testing_qa_and_kernel_tuning.md)**
++  - 机器人测试金字塔：GTest / Pytest 单元测试与 `launch_testing` 多进程端到端集成测试
++  - 激光雷达与 4K 相机静默丢包根因复盘：UDP 套接字接收缓冲区溢出（`RcvbufErrors`）
++  - Linux 内核网络栈 Sysctl 调优模版（`net.core.rmem_max` 扩大至 32MB、积压队列调优）
++  - 万兆以太网巨型帧优化（Jumbo Frames MTU 9000），消除 80% IP 分片硬中断开销
 ---
 
 ## 🛠️ 配套工业级 Demo 工程

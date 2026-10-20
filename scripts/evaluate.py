@@ -321,10 +321,10 @@ def run_mock_runtime_tests():
     max_tests = 4
     passed = 0
 
-    py_nodes = list(DEMOS_DIR.glob("**/*talker*.py")) + list(DEMOS_DIR.glob("**/*publisher*.py"))
-    sub_nodes = list(DEMOS_DIR.glob("**/*listener*.py")) + list(DEMOS_DIR.glob("**/*subscriber*.py"))
-    srv_nodes = list(DEMOS_DIR.glob("**/*service*.py")) + list(DEMOS_DIR.glob("**/*server*.py"))
-    action_nodes = list(DEMOS_DIR.glob("**/*action*.py"))
+    py_nodes = [f for f in list(DEMOS_DIR.glob("**/*talker*.py")) + list(DEMOS_DIR.glob("**/*publisher*.py")) if "test" not in f.parts]
+    sub_nodes = [f for f in list(DEMOS_DIR.glob("**/*listener*.py")) + list(DEMOS_DIR.glob("**/*subscriber*.py")) if "test" not in f.parts]
+    srv_nodes = [f for f in list(DEMOS_DIR.glob("**/*service*.py")) + list(DEMOS_DIR.glob("**/*server*.py")) if "test" not in f.parts]
+    action_nodes = [f for f in list(DEMOS_DIR.glob("**/*action*.py")) if "test" not in f.parts]
 
     # Test 1: Talker/Publisher node
     if py_nodes:

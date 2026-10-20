@@ -21,5 +21,11 @@ install(TARGETS
   cpp_listener
   DESTINATION lib/${PROJECT_NAME}
 )
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_talker test/test_talker.cpp)
+  ament_target_dependencies(test_talker rclcpp std_msgs)
+endif()
 
 ament_package()

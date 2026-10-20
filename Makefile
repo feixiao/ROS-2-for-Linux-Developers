@@ -5,7 +5,7 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-.PHONY: help build clean test docker-build docker-up docker-down lint
+.PHONY: help build clean test test-integration sysctl-apply docker-build docker-up docker-down lint
 
 help: ## 显示可用指令与说明 (Show help menu)
 	@echo "========================================================================"
@@ -25,6 +25,16 @@ build: ## 使用 colcon 编译所有 demo 功能包 (带符号链接与调试符
 test: ## 执行基准质量评估套件 (Run handbook & demo validation harness)
 	@echo ">>> 正在运行质量评估与代码语法校验..."
 	python3 scripts/evaluate.py
+
+test-integration: ## 运行 launch_testing 多进程端到端集成测试
+	@echo ">>> 正在执行 launch_testing 多进程集成测试..."
+	source install/setup.bash 2>/dev/null || true; \
+	colcon test --packages-select launch_demo && colcon test-result --verbose
+
+sysctl-apply: ## 将高吞吐 ROS 2 DDS 内核网络参数应用到 Linux 系统
+	@echo ">>> 正在部署 Linux 内核网络优化参数 (需 sudo 权限)..."
+	sudo cp scripts/60-ros2-dds-sysctl.conf /etc/sysctl.d/
+	sudo sysctl --system
 
 docker-build: ## 构建生产级多阶段 ROS 2 Docker 镜像
 	@echo ">>> 正在构建多阶段 Docker 镜像..."
