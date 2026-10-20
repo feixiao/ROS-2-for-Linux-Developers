@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ROS 2 智能机器人远程驾驶舱 (Teleoperation Cockpit)</title>
+  <style>
+    :root {
+      --bg: #070a10;
+      --card-bg: rgba(14, 20, 32, 0.85);
+      --border: #1b263b;
+      --accent: #00ffcc;
+      --accent-glow: rgba(0, 255, 204, 0.35);
+      --warning: #ffb703;
+      --danger: #ef233c;
+      --text: #e0e6ed;
+      --text-muted: #778da9;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* 顶部高科技导航条 */
+    header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--accent);
+      text-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    .status-bar {
+      display: flex;
+      gap: 20px;
+      font-family: monospace;
+      font-size: 0.95rem;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge-live {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: #00ff66;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #00ff66;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* 主操控驾驶舱布局 */
+    main {
+      flex: 1;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* 视频视窗 */
+    .viewport-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .viewport-header {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+
+    .video-wrapper {
+      position: relative;
+      flex: 1;
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 480px;
+    }
+
+    .video-stream {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* 侧边仪表盘与控制器 */
+    aside {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      backdrop-filter: blur(10px);
+    }
+
+    .panel-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* 速度表盘指标 */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      font-family: monospace;
+    }
+
+    .metric-box {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .metric-val {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 4px;
+    }
+
+    .metric-unit {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* 键盘 WASD 键位指示器 */
+    .wasd-cluster {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .wasd-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .key-btn {
+      width: 52px;
+      height: 52px;
+      background: #141c2b;
+      border: 1px solid #28374f;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      font-family: monospace;
+      color: var(--text-muted);
+      transition: all 0.1s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .key-btn.active {
+      background: var(--accent);
+      color: #070a10;
+      border-color: #00ffcc;
+      transform: translateY(2px);
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+
+    .key-sub {
+      font-size: 0.65rem;
+      opacity: 0.7;
+    }
+
+    /* 虚拟触摸摇杆 */
+    .joystick-container {
+      display: flex;
+      justify-content: center;
+      padding: 8px 0;
+    }
+
+    #joystickCanvas {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px dashed var(--border);
+      border-radius: 50%;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    /* 紧急刹车按钮 */
+    .estop-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #d90429, #ef233c);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(239, 35, 60, 0.4);
+      transition: all 0.15s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .estop-btn:hover {
+      background: #ff002b;
+      box-shadow: 0 0 20px rgba(255, 0, 43, 0.6);
+    }
+
+    .estop-btn:active {
+      transform: scale(0.98);
+    }
+
+    /* 移动端响应式 */
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="2" x2="12" y2="6"></line>
+        <line x1="12" y1="18" x2="12" y2="22"></line>
+        <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+        <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+        <line x1="2" y1="12" x2="6" y2="12"></line>
+        <line x1="18" y1="12" x2="22" y2="12"></line>
+      </svg>
+      <span>ROS 2 TELEOP COCKPIT</span>
+    </div>
+    <div class="status-bar">
+      <div class="status-item">
+        <span class="badge-live"></span>
+        <span style="color:#00ff66;">STREAM ONLINE</span>
+      </div>
+      <div class="status-item">
+        <span>RTT:</span>
+        <strong id="pingVal" style="color:var(--accent);">-- ms</strong>
+      </div>
+      <div class="status-item">
+        <span>FPS:</span>
+        <strong id="fpsVal">30</strong>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- 第一人称 FPV 视频流视窗 -->
+    <div class="viewport-card">
+      <div class="viewport-header">
+        <span>CHANNEL: /camera/image_raw</span>
+        <span>RESOLUTION: 1280x720 30FPS</span>
+      </div>
+      <div class="video-wrapper">
+        <img id="streamImg" class="video-stream" src="/stream" alt="ROS 2 Teleoperation Camera Stream">
+      </div>
+    </div>
+
+    <!-- 侧边仪表盘与交互操控区 -->
+    <aside>
+      <!-- 实时遥测数据 -->
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>底盘动态遥测 (Telemetry)</span>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-box">
+            <div class="metric-unit">线速度 (Linear V)</div>
+            <div class="metric-val" id="linearVal">0.00</div>
+            <div class="metric-unit">m/s</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-unit">角速度 (Angular W)</div>
+            <div class="metric-val" id="angularVal">0.00</div>
+            <div class="metric-unit">rad/s</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 交互控制方式 1: 键盘 WASD -->
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>键盘控制 (WASD Keys)</span>
+          <span style="font-size:0.7rem; color:var(--text-muted);">松开按键自动减速</span>
+        </div>
+        <div class="wasd-cluster">
+          <div class="key-btn" id="keyW">
+            <span>W</span>
+            <span class="key-sub">前进</span>
+          </div>
+          <div class="wasd-row">
+            <div class="key-btn" id="keyA">
+              <span>A</span>
+              <span class="key-sub">左转</span>
+            </div>
+            <div class="key-btn" id="keyS">
+              <span>S</span>
+              <span class="key-sub">后退</span>
+            </div>
+            <div class="key-btn" id="keyD">
+              <span>D</span>
+              <span class="key-sub">右转</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 交互控制方式 2: 虚拟触摸摇杆 -->
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>虚拟手柄摇杆 (Virtual Joystick)</span>
+          <span style="font-size:0.7rem; color:var(--text-muted);">支持鼠标 / 触摸拖拽</span>
+        </div>
+        <div class="joystick-container">
+          <canvas id="joystickCanvas" width="160" height="160"></canvas>
+        </div>
+      </div>
+
+      <!-- 紧急制动按钮 -->
+      <button class="estop-btn" id="estopBtn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+        </svg>
+        <span>EMERGENCY STOP (空格键急停)</span>
+      </button>
+    </aside>
+  </main>
+
+  <script>
+    // 状态量
+    let targetLinear = 0.0;
+    let targetAngular = 0.0;
+    const keysPressed = {};
+
+    // DOM 元素
+    const pingVal = document.getElementById('pingVal');
+    const linearVal = document.getElementById('linearVal');
+    const angularVal = document.getElementById('angularVal');
+    const estopBtn = document.getElementById('estopBtn');
+
+    // 1. 键盘监听 (WASD)
+    window.addEventListener('keydown', (e) => {
+      if (['w', 'a', 's', 'd', 'W', 'A', 'S', 'D', ' '].includes(e.key)) {
+        e.preventDefault();
+      }
+      keysPressed[e.key.toLowerCase()] = true;
+      if (e.key === ' ') {
+        emergencyStop();
+      } else {
+        updateKeyboardDrive();
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      keysPressed[e.key.toLowerCase()] = false;
+      updateKeyboardDrive();
+    });
+
+    function updateKeyboardDrive() {
+      let v = 0.0;
+      let w = 0.0;
+
+      const wKey = document.getElementById('keyW');
+      const aKey = document.getElementById('keyA');
+      const sKey = document.getElementById('keyS');
+      const dKey = document.getElementById('keyD');
+
+      if (keysPressed['w']) { v += 1.0; wKey.classList.add('active'); } else { wKey.classList.remove('active'); }
+      if (keysPressed['s']) { v -= 0.8; sKey.classList.add('active'); } else { sKey.classList.remove('active'); }
+      if (keysPressed['a']) { w += 1.2; aKey.classList.add('active'); } else { aKey.classList.remove('active'); }
+      if (keysPressed['d']) { w -= 1.2; dKey.classList.add('active'); } else { dKey.classList.remove('active'); }
+
+      targetLinear = v;
+      targetAngular = w;
+      sendControl(targetLinear, targetAngular);
+    }
+
+    // 2. 虚拟触摸摇杆 (Canvas)
+    const canvas = document.getElementById('joystickCanvas');
+    const ctx = canvas.getContext('2d');
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const maxRadius = 55;
+    let knobX = centerX;
+    let knobY = centerY;
+    let isDragging = false;
+
+    function drawJoystick() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 外底盘圆环
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, maxRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = '#1b263b';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      // 内十字参考线
+      ctx.beginPath();
+      ctx.moveTo(centerX - 12, centerY);
+      ctx.lineTo(centerX + 12, centerY);
+      ctx.moveTo(centerX, centerY - 12);
+      ctx.lineTo(centerX, centerY + 12);
+      ctx.strokeStyle = 'rgba(0, 255, 204, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // 拖拽手柄
+      ctx.beginPath();
+      ctx.arc(knobX, knobY, 24, 0, Math.PI * 2);
+      ctx.fillStyle = isDragging ? '#00ffcc' : '#28374f';
+      ctx.fill();
+      ctx.strokeStyle = '#00ffcc';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    drawJoystick();
+
+    function handlePointer(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      let dx = clientX - rect.left - centerX;
+      let dy = clientY - rect.top - centerY;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > maxRadius) {
+        dx = (dx / dist) * maxRadius;
+        dy = (dy / dist) * maxRadius;
+      }
+
+      knobX = centerX + dx;
+      knobY = centerY + dy;
+      drawJoystick();
+
+      // 映射到线速度与角速度: 上下是线速度 (前为正, 后为负), 左右是角速度 (左为正, 右为负)
+      targetLinear = parseFloat((-dy / maxRadius * 1.5).toFixed(2));
+      targetAngular = parseFloat((-dx / maxRadius * 2.0).toFixed(2));
+      sendControl(targetLinear, targetAngular);
+    }
+
+    canvas.addEventListener('mousedown', (e) => { isDragging = true; handlePointer(e.clientX, e.clientY); });
+    window.addEventListener('mousemove', (e) => { if (isDragging) handlePointer(e.clientX, e.clientY); });
+    window.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        knobX = centerX;
+        knobY = centerY;
+        drawJoystick();
+        targetLinear = 0.0;
+        targetAngular = 0.0;
+        sendControl(0, 0);
+      }
+    });
+
+    // 触摸屏手势支持
+    canvas.addEventListener('touchstart', (e) => { isDragging = true; handlePointer(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); });
+    window.addEventListener('touchmove', (e) => { if (isDragging) handlePointer(e.touches[0].clientX, e.touches[0].clientY); });
+    window.addEventListener('touchend', () => {
+      if (isDragging) {
+        isDragging = false;
+        knobX = centerX;
+        knobY = centerY;
+        drawJoystick();
+        targetLinear = 0.0;
+        targetAngular = 0.0;
+        sendControl(0, 0);
+      }
+    });
+
+    // 3. 紧急制动
+    function emergencyStop() {
+      targetLinear = 0.0;
+      targetAngular = 0.0;
+      for (const k in keysPressed) keysPressed[k] = false;
+      document.querySelectorAll('.key-btn').forEach(b => b.classList.remove('active'));
+      knobX = centerX;
+      knobY = centerY;
+      drawJoystick();
+      sendControl(0, 0, true);
+    }
+    estopBtn.addEventListener('click', emergencyStop);
+
+    // 4. 发送控制指令与心跳
+    let lastSent = 0;
+    function sendControl(linear, angular, force = false) {
+      linearVal.innerText = linear.toFixed(2);
+      angularVal.innerText = angular.toFixed(2);
+
+      const now = Date.now();
+      if (!force && now - lastSent < 45) return; // 约 20Hz 频率节流
+      lastSent = now;
+
+      fetch(`/cmd?v=${linear}&w=${angular}`, { method: 'GET' }).catch(() => {});
+    }
+
+    // 持续高频保持心跳 (防止按住键不动时心跳断流)
+    setInterval(() => {
+      if (targetLinear !== 0 || targetAngular !== 0) {
+        sendControl(targetLinear, targetAngular, true);
+      }
+    }, 100);
+
+    // 5. 毫秒级 RTT Ping 统计
+    setInterval(async () => {
+      const t0 = performance.now();
+      try {
+        const resp = await fetch('/ping?t=' + t0);
+        if (resp.ok) {
+          const rtt = Math.round(performance.now() - t0);
+          pingVal.innerText = rtt + ' ms';
+          if (rtt < 30) {
+            pingVal.style.color = '#00ffcc';
+          } else if (rtt < 80) {
+            pingVal.style.color = '#ffb703';
+          } else {
+            pingVal.style.color = '#ef233c';
+          }
+        }
+      } catch {
+        pingVal.innerText = 'OFFLINE';
+        pingVal.style.color = '#ef233c';
+      }
+    }, 1000);
+  </script>
+</body>
+</html>

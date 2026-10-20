@@ -36,6 +36,7 @@ COPY cpp_behavior_tree_demo /ros2_ws/src/cpp_behavior_tree_demo
 COPY cpp_ros2_control_demo /ros2_ws/src/cpp_ros2_control_demo
 COPY nav2_costmap_demo /ros2_ws/src/nav2_costmap_demo
 COPY multimedia_av_demo /ros2_ws/src/multimedia_av_demo
+COPY teleop_cockpit_demo /ros2_ws/src/teleop_cockpit_demo
 COPY launch_demo /ros2_ws/src/launch_demo
 
 # 编译所有功能包
@@ -86,6 +87,7 @@ ENTRYPOINT ["/ros_entrypoint.sh"]
 
 USER $USERNAME
 WORKDIR /home/$USERNAME
+EXPOSE 8080
 
 # 默认启动生产 Launch 编排
 CMD ["ros2", "launch", "launch_demo", "demo.launch.py"]

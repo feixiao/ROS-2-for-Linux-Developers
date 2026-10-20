@@ -5,7 +5,7 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-.PHONY: help build clean test test-integration sysctl-apply check-health service-install docker-build docker-up docker-down lint
+.PHONY: help build clean test test-integration sysctl-apply check-health service-install cockpit docker-build docker-up docker-down lint
 
 help: ## 显示可用指令与说明 (Show help menu)
 	@echo "========================================================================"
@@ -47,6 +47,11 @@ service-install: ## 安装并启用生产级 Systemd 守护进程 (需 sudo 权�
 	sudo systemctl enable ros2-robot.service
 	@echo ">>> 安装完成！使用 'sudo systemctl start ros2-robot.service' 启动。"
 
+cockpit: ## 启动浏览器低延迟远程驾驶舱 (访问 http://localhost:8080)
+	@echo ">>> 正在拉起远程驾驶舱服务，打开浏览器访问 http://localhost:8080 ..."
+	source install/setup.bash 2>/dev/null || true; \
+	ros2 launch teleop_cockpit_demo cockpit.launch.py
+
 docker-build: ## 构建生产级多阶段 ROS 2 Docker 镜像
 	@echo ">>> 正在构建多阶段 Docker 镜像..."
 	docker compose -f demos/docker/docker-compose.yml build
@@ -65,6 +70,8 @@ lint: ## 检查 Python 与 C++ 代码规范
 	python3 -m py_compile demos/launch_demo/launch/*.py
 	python3 -m py_compile demos/cpp_composition_demo/launch/*.py
 	python3 -m py_compile demos/multimedia_av_demo/scripts/*.py
+	python3 -m py_compile demos/teleop_cockpit_demo/teleop_cockpit_demo/*.py
+	python3 -m py_compile demos/teleop_cockpit_demo/launch/*.py
 	python3 -m py_compile demos/multimedia_av_demo/launch/*.py
 	@echo ">>> 代码语法检查全部通过！"
 

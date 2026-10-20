@@ -122,6 +122,7 @@ demos/
 ├── launch_demo/         # 生产级 Python Launch 编排工程 (含 YAML 注入与重映射)
 ├── nav2_costmap_demo/   # 工业级自主导航工程 (Nav2 Costmap2D、Smac 规划与 AMCL)
 ├── multimedia_av_demo/  # 工业级音视频工程 (OpenCV/image_transport、GStreamer 与音频推流)
+├── teleop_cockpit_demo/ # 浏览器低延迟驾驶舱 (HUD 航电影像 + 虚拟摇杆/键盘 WASD 遥控)
 └── docker/              # 开箱即用的 Dockerfile 与 docker-compose.yml 容器化环境
 ```
 
@@ -175,8 +176,26 @@ make build         # 一键调用 colcon 编译并导出 compile_commands.json
 make test          # 自动化语法校验与完整性测试套件
 make docker-build  # 构建生产级多阶段瘦身镜像
 make docker-up     # 启动容器化集群
+make cockpit       # 一键拉起远程驾驶舱 (访问 http://localhost:8080)
 make clean         # 清理 build / install / log 缓存
 ```
+
+### 方式 4：启动沉浸式浏览器远程驾驶舱 (零硬件、即刻体验)
+
+无需任何真实底盘与摄像头，直接通过 Docker 或本地启动驾驶舱：
+
+```bash
+# 1. 启动驾驶舱服务 (已暴露 8080 端口)
+docker run -it --rm -p 8080:8080 ros2_linux_test ros2 launch teleop_cockpit_demo cockpit.launch.py
+
+# 2. 在宿主机 (Mac / Linux / Windows) 浏览器中打开:
+#    👉 http://localhost:8080
+```
+你将亲眼看到：
+- **FPV 实时座舱视窗**：1280x720@30FPS 动态渲染的 3D 透视网格地面、人工水平仪（Artificial Horizon）与准星 HUD；
+- **键盘 WASD 驾驶**：按住 `W` 键时，视窗网格高速向后倒退，速度表指针即刻飙升；按 `A/D` 转向时地平线动态倾斜；松开按键自动减速刹车；
+- **虚拟触摸摇杆**：鼠标或触控拖拽摇杆，实时计算速度矢量；
+- **毫秒级遥测**：顶部跳动实时往返延迟（`RTT < 30ms`）与一键紧急制动（`E-Stop`）。
 
 ---
 

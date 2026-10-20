@@ -1,17 +1,29 @@
 version: '3.8'
 
 services:
+  # 机器人核心传感与控制管道
   ros2_pipeline:
     build:
       context: ..
       dockerfile: docker/Dockerfile
     image: ros2_linux_handbook:latest
     container_name: ros2_linux_pipeline
-    # 核心配置: 复用宿主机网络和共享内存以支持 DDS 组播发现与零拷贝
     network_mode: host
     ipc: host
     environment:
       - ROS_DOMAIN_ID=42
       - PYTHONUNBUFFERED=1
     command: ros2 launch launch_demo demo.launch.py
+    restart: unless-stopped
+
+  # 浏览器低延迟远程驾驶舱 (浏览器访问 http://localhost:8080 即可驾驶)
+  teleop_cockpit:
+    image: ros2_linux_handbook:latest
+    container_name: ros2_teleop_cockpit
+    network_mode: host
+    ipc: host
+    environment:
+      - ROS_DOMAIN_ID=42
+      - PYTHONUNBUFFERED=1
+    command: ros2 launch teleop_cockpit_demo cockpit.launch.py
     restart: unless-stopped

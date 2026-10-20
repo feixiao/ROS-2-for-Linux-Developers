@@ -268,6 +268,7 @@ def evaluate_demos():
         "ros2_control_demo_valid": 0,
         "nav2_demo_valid": 0,
         "multimedia_av_demo_valid": 0,
+        "teleop_cockpit_demo_valid": 0,
         "makefile_valid": 0
     }
 
@@ -429,7 +430,12 @@ def evaluate_demos():
     if has_av:
         results["multimedia_av_demo_valid"] = 1
 
-    # 21. Makefile check
+    # 21. Teleoperation Cockpit Demo
+    has_cockpit = any("cockpit" in f.name for f in DEMOS_DIR.glob("**/*cockpit*/**/*.*"))
+    if has_cockpit:
+        results["teleop_cockpit_demo_valid"] = 1
+
+    # 22. Makefile check
     makefile = ROOT_DIR / "Makefile"
     if makefile.exists():
         mf_content = makefile.read_text(encoding="utf-8", errors="ignore")
@@ -516,6 +522,7 @@ def main():
         demo_res["ros2_control_demo_valid"] == 1,
         demo_res["nav2_demo_valid"] == 1,
         demo_res["multimedia_av_demo_valid"] == 1,
+        demo_res["teleop_cockpit_demo_valid"] == 1,
         demo_res["makefile_valid"] == 1
     ]
     demo_completeness = (sum(1 for x in expected_artifacts if x) / len(expected_artifacts)) * 100.0
@@ -547,6 +554,7 @@ def main():
     print(f"Total Words: {word_count}")
     print(f"Markdown Files: {doc_res.get('file_count', 0)}")
     print(f"Topic Coverage: {topic_cov:.1f}%")
+    print(f"Teleop Cockpit Demo: {'YES' if demo_res['teleop_cockpit_demo_valid'] else 'NO'}")
     print(f"Multimedia AV Package: {'YES' if demo_res['multimedia_av_demo_valid'] else 'NO'}")
     print(f"Nav2 Navigation Package: {'YES' if demo_res['nav2_demo_valid'] else 'NO'}")
     print(f"Behavior Tree Demo (.cpp): {'YES' if demo_res['behavior_tree_demo_valid'] else 'NO'}")
