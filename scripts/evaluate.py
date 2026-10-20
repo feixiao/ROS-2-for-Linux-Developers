@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """
-Advanced Evaluation Harness for ROS 2 Handbook for Linux Developers (Segment 5).
+Advanced Evaluation Harness for ROS 2 Handbook for Linux Developers (Segment 6).
 Evaluates:
 1. Documentation structure and coverage of Linux-to-ROS2 concepts.
-2. Systemd Daemonization, Watchdog Supervision, and Cgroups Limits.
-3. Observability, Prometheus Metrics Exporter, and Grafana Dashboarding.
-4. Embedded Linux Cross-Compilation (Yocto, meta-ros, aarch64 sysroots).
-5. Testing Pyramid & Linux Kernel Network Tuning (launch_testing, GTest, Pytest, sysctl).
-6. Demo package integrity (CMakeLists.txt, package.xml, Python/C++ sources).
-7. Custom Interfaces, Component Composition, Lifecycle Nodes.
-8. Linux Developer Ergonomics (Makefile, systemd units, diagnostics scripts).
+2. Spatial Geometry & Coordinate Transforms (tf2 tree, quaternions, time travel).
+3. Linux Vision Pipelines (V4L2, DMABUF zero-copy, CUDA, image_transport).
+4. Systemd Daemonization, Watchdog Supervision, and Cgroups Limits.
+5. Observability, Prometheus Metrics Exporter, and Grafana Dashboarding.
+6. Embedded Linux Cross-Compilation (Yocto, meta-ros, aarch64 sysroots).
+7. Testing Pyramid & Linux Kernel Network Tuning (launch_testing, GTest, Pytest, sysctl).
+8. Demo package integrity (CMakeLists.txt, package.xml, Python/C++ sources).
+9. Custom Interfaces, Component Composition, Lifecycle Nodes, tf2 Coordinate Nodes.
+10. Linux Developer Ergonomics (Makefile, systemd units, diagnostics scripts).
 """
 
 import os
@@ -119,6 +121,16 @@ REQUIRED_TOPICS = {
         "keywords": ["yocto", "交叉编译", "cross-compile", "aarch64", "sysroot", "meta-ros", "jetson", "arm64"],
         "weight": 1.0,
         "description": "Embedded Linux cross-compilation (Yocto meta-ros, aarch64 toolchains, and sysroots)"
+    },
+    "tf2_coordinate_frames": {
+        "keywords": ["tf2", "坐标系", "transform", "quaternion", "四元数", "broadcaster", "listener", "tree", "base_link"],
+        "weight": 1.0,
+        "description": "tf2 coordinate frame transformations, SE(3) spatial geometry, and tree resolution"
+    },
+    "gpu_camera_dmabuf": {
+        "keywords": ["v4l2", "dmabuf", "cuda", "image_transport", "摄像头", "零拷贝", "gstreamer"],
+        "weight": 1.0,
+        "description": "High-throughput Linux vision pipelines (V4L2, DMABUF zero-copy, CUDA GPU integration)"
     }
 }
 
@@ -188,7 +200,7 @@ def evaluate_docs():
     }
 
 def evaluate_demos():
-    """Score demo files: packages, sources, IDL, components, lifecycle, testing, sysctl, systemd, metrics."""
+    """Score demo files: packages, sources, IDL, components, lifecycle, testing, sysctl, systemd, metrics, tf2."""
     results = {
         "package_xml_valid": 0,
         "package_xml_total": 0,
@@ -211,6 +223,7 @@ def evaluate_demos():
         "systemd_service_valid": 0,
         "health_check_script_valid": 0,
         "metrics_exporter_valid": 0,
+        "tf2_demo_valid": 0,
         "makefile_valid": 0
     }
 
@@ -337,7 +350,15 @@ def evaluate_demos():
     if has_exporter:
         results["metrics_exporter_valid"] = 1
 
-    # 16. Makefile check
+    # 16. tf2 Coordinate Transforms package
+    has_tf2 = any("tf2_ros" in cpp.read_text(encoding="utf-8", errors="ignore") and
+                  ("TransformBroadcaster" in cpp.read_text(encoding="utf-8", errors="ignore") or
+                   "TransformListener" in cpp.read_text(encoding="utf-8", errors="ignore"))
+                  for cpp in DEMOS_DIR.glob("**/*.cpp"))
+    if has_tf2:
+        results["tf2_demo_valid"] = 1
+
+    # 17. Makefile check
     makefile = ROOT_DIR / "Makefile"
     if makefile.exists():
         mf_content = makefile.read_text(encoding="utf-8", errors="ignore")
@@ -402,13 +423,10 @@ def main():
     analogy_score = doc_res["analogy_score"]
 
     # Demo completeness score (0-100)
-    # Expected artifacts in Segment 5:
-    # 4+ package.xml, 3+ CMakeLists.txt, 2+ python nodes, 2+ cpp files, 1+ launch file, 1+ Dockerfile,
-    # custom interfaces, component composition, lifecycle node, launch_testing, unit tests, sysctl config,
-    # systemd unit file, health check script, metrics exporter, Makefile (16 items)
+    # Expected artifacts in Segment 6 (17 items)
     expected_artifacts = [
-        demo_res["package_xml_valid"] >= 4,
-        demo_res["cmakelists_valid"] >= 3,
+        demo_res["package_xml_valid"] >= 5,
+        demo_res["cmakelists_valid"] >= 4,
         demo_res["python_ast_valid"] >= 2,
         demo_res["cpp_patterns_valid"] >= 2,
         demo_res["launch_files_valid"] >= 1,
@@ -422,13 +440,14 @@ def main():
         demo_res["systemd_service_valid"] == 1,
         demo_res["health_check_script_valid"] == 1,
         demo_res["metrics_exporter_valid"] == 1,
+        demo_res["tf2_demo_valid"] == 1,
         demo_res["makefile_valid"] == 1
     ]
     demo_completeness = (sum(1 for x in expected_artifacts if x) / len(expected_artifacts)) * 100.0
 
-    # Word count maturity score (0-100, targeting 23,000+ words)
+    # Word count maturity score (0-100, targeting 26,000+ words)
     word_count = doc_res["word_count"]
-    word_count_score = min(100.0, (word_count / 23000.0) * 100.0)
+    word_count_score = min(100.0, (word_count / 26000.0) * 100.0)
 
     # Composite primary score (0-100)
     composite_score = (
@@ -449,10 +468,11 @@ def main():
     print(f"METRIC word_count={word_count}")
 
     # Summary
-    print("\n--- Advanced Evaluation Breakdown (Segment 5) ---")
+    print("\n--- Advanced Evaluation Breakdown (Segment 6) ---")
     print(f"Total Words: {word_count}")
     print(f"Markdown Files: {doc_res.get('file_count', 0)}")
     print(f"Topic Coverage: {topic_cov:.1f}%")
+    print(f"tf2 Coordinate Transforms (.cpp): {'YES' if demo_res['tf2_demo_valid'] else 'NO'}")
     print(f"Systemd Service File: {'YES' if demo_res['systemd_service_valid'] else 'NO'}")
     print(f"Health Check Script: {'YES' if demo_res['health_check_script_valid'] else 'NO'}")
     print(f"Prometheus Metrics Exporter: {'YES' if demo_res['metrics_exporter_valid'] else 'NO'}")
