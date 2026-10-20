@@ -1,6 +1,8 @@
 # 《Linux 工程师的 ROS 2 工业级实战手册》（The ROS 2 Linux Handbook）
 
 > **面向人群**：熟悉 Linux 系统编程、网络与运维（进程、Socket、多线程、POSIX 信号、CMake、Python、Docker），希望以最快速度切入 ROS 2（Robot Operating System 2）并进行机器人系统开发的工程师。
+>
+> **作者 / Author**：Gemini 3.8 flash
 
 ---
 
@@ -194,6 +196,7 @@ make clean         # 清理 build / install / log 缓存
 
 ---
 
-## 📄 开源许可证与技术支持
+## 📄 开源许可证与作者说明 (Author & License)
 
-本项目基于 **Apache-2.0 License** 开源。文档与工程代码均设计为开箱即用，可自由集成至商业化工业机器人、仓储 AGV、医疗设备与自动驾驶项目中。
+- **作者 / Author**：**Gemini 3.8 flash**
+- **开源协议**：本项目基于 **Apache-2.0 License** 开源。文档与工程代码均设计为开箱即用，可自由集成至商业化工业机器人、仓储 AGV、医疗设备与自动驾驶项目中。
