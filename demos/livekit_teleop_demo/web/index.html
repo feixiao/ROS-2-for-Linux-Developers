@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ROS 2 LiveKit 工业远程驾驶舱 (SFU Teleoperation Cockpit)</title>
+  <!-- 引入 LiveKit 官方浏览器 WebRTC 客户端 SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #070a10;
+      --card-bg: rgba(14, 20, 32, 0.88);
+      --border: #1b263b;
+      --accent: #00ffcc;
+      --accent-glow: rgba(0, 255, 204, 0.35);
+      --livekit: #ff007f;
+      --warning: #ffb703;
+      --danger: #ef233c;
+      --text: #e0e6ed;
+      --text-muted: #778da9;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    .status-bar {
+      display: flex;
+      gap: 16px;
+      font-family: monospace;
+      font-size: 0.9rem;
+      align-items: center;
+    }
+
+    .badge-lk {
+      background: rgba(255, 0, 127, 0.15);
+      color: var(--livekit);
+      border: 1px solid var(--livekit);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+
+    .badge-live {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: #00ff66;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #00ff66;
+    }
+
+    main {
+      flex: 1;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .viewport-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .viewport-header {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+
+    .video-wrapper {
+      position: relative;
+      flex: 1;
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 480px;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    aside {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    .panel-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      font-family: monospace;
+    }
+
+    .metric-box {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .metric-val {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .metric-unit {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .wasd-cluster {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .wasd-row { display: flex; gap: 8px; }
+
+    .key-btn {
+      width: 52px;
+      height: 52px;
+      background: #141c2b;
+      border: 1px solid #28374f;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-family: monospace;
+      color: var(--text-muted);
+      transition: all 0.1s;
+    }
+
+    .key-btn.active {
+      background: var(--accent);
+      color: #070a10;
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+
+    .joystick-container {
+      display: flex;
+      justify-content: center;
+      padding: 8px 0;
+    }
+
+    #joystickCanvas {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px dashed var(--border);
+      border-radius: 50%;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    .estop-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #d90429, #ef233c);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(239, 35, 60, 0.4);
+    }
+
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <span>ROS 2 LIVEKIT TELEOPERATION COCKPIT</span>
+    </div>
+    <div class="status-bar">
+      <span class="badge-lk">LIVEKIT SFU</span>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span class="badge-live"></span>
+        <span id="connStatus" style="color:#00ff66;">CONNECTING...</span>
+      </div>
+      <div>RTT: <strong id="pingVal" style="color:var(--accent);">-- ms</strong></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="viewport-card">
+      <div class="viewport-header">
+        <span id="streamSource">SOURCE: REAL DRIVING STREAM // 30 FPS</span>
+        <span>STREAM: WebRTC / H.264 (SFU)</span>
+      </div>
+      <div class="video-wrapper" id="videoWrapper" style="position:relative;">
+        <video id="remoteVideo" autoplay playsinline muted></video>
+        <div id="playOverlay" style="display:none; position:absolute; inset:0; background:rgba(7,10,16,0.75); backdrop-filter:blur(4px); flex-direction:column; justify-content:center; align-items:center; cursor:pointer; color:#00ffcc; font-family:monospace; font-size:1.05rem; gap:8px; z-index:10;">
+          <div style="font-size:2.4rem; color:#00ffaa;">▶</div>
+          <div style="font-weight:bold;">点击此处开启车载实时图传</div>
+          <div style="font-size:0.75rem; color:#8899ac;">(防止浏览器默认安全策略静默拦截自动播放)</div>
+        </div>
+      </div>
+    </div>
+
+    <aside>
+      <div class="panel-card">
+        <div class="panel-title">底盘动态遥测 (Telemetry)</div>
+        <div class="metrics-grid">
+          <div class="metric-box">
+            <div class="metric-unit">线速度 (Linear V)</div>
+            <div class="metric-val" id="linearVal">0.00</div>
+            <div class="metric-unit">m/s</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-unit">角速度 (Angular W)</div>
+            <div class="metric-val" id="angularVal">0.00</div>
+            <div class="metric-unit">rad/s</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-unit">物理里程计坐标 (Odom)</div>
+            <div class="metric-val" id="posVal" style="font-size:1.2rem; padding-top:4px;">X:0.0 Y:0.0</div>
+            <div class="metric-unit">米 (m)</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-unit">航向角度 / 激光雷达</div>
+            <div class="metric-val" id="yawVal" style="font-size:1.2rem; padding-top:4px;">0.0°</div>
+            <div class="metric-unit">避障: <span id="lidarVal" style="color:#00ff66; font-weight:bold;">4.25 m</span></div>
+          </div>
+        </div>
+
+      <div class="panel-card">
+        <div class="panel-title">键盘操控 (WASD Keys)</div>
+        <div class="wasd-cluster">
+          <div class="key-btn" id="keyW"><span>W</span><span style="font-size:0.6rem;">前进</span></div>
+          <div class="wasd-row">
+            <div class="key-btn" id="keyA"><span>A</span><span style="font-size:0.6rem;">左转</span></div>
+            <div class="key-btn" id="keyS"><span>S</span><span style="font-size:0.6rem;">后退</span></div>
+            <div class="key-btn" id="keyD"><span>D</span><span style="font-size:0.6rem;">右转</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title">虚拟手柄摇杆 (Virtual Joystick)</div>
+        <div class="joystick-container">
+          <canvas id="joystickCanvas" width="160" height="160"></canvas>
+        </div>
+      </div>
+
+      <button class="estop-btn" id="estopBtn">EMERGENCY STOP (空格急停)</button>
+    </aside>
+  </main>
+
+  <script>
+    let room = null;
+    let targetLinear = 0.0;
+    let targetAngular = 0.0;
+    const keysPressed = {};
+
+    const connStatus = document.getElementById('connStatus');
+    const pingVal = document.getElementById('pingVal');
+    const linearVal = document.getElementById('linearVal');
+    const angularVal = document.getElementById('angularVal');
+    const estopBtn = document.getElementById('estopBtn');
+    const remoteVideo = document.getElementById('remoteVideo');
+
+    // 1. 初始化 LiveKit WebRTC 连接
+    async function initLiveKit() {
+      try {
+        // 请求本地 Token 接口获取准入令牌
+        const tokenResp = await fetch('/token?identity=pilot_web&room=robot_cockpit');
+        const token = await tokenResp.text();
+
+        room = new LivekitClient.Room({
+          adaptiveStream: true,
+          dynacast: true,
+        });
+        window.room = room;
+
+        function handleTrackSubscribed(track) {
+          console.log('[LiveKit] Attaching track:', track.kind);
+          if (track.kind === 'video') {
+            track.attach(remoteVideo);
+            remoteVideo.muted = true;
+            remoteVideo.defaultMuted = true;
+            remoteVideo.playsInline = true;
+            remoteVideo.play().catch(e => console.warn('[AutoPlay policy]', e));
+          }
+        }
+
+        // 监听视频轨道到达 -> 挂载至 HTML5 <video> 标签播放
+        room.on(LivekitClient.RoomEvent.TrackSubscribed, (track, publication, participant) => {
+          handleTrackSubscribed(track);
+        });
+        // 监听机器人端回传的真实物理遥测与激光雷达数据 (DataChannel UDP)
+        room.on(LivekitClient.RoomEvent.DataReceived, (payload, participant) => {
+          try {
+            const str = new TextDecoder().decode(payload);
+            const data = JSON.parse(str);
+            if (data.type === 'telemetry') {
+              linearVal.innerText = data.linear_v.toFixed(2);
+              angularVal.innerText = data.angular_w.toFixed(2);
+              if (document.getElementById('posVal')) {
+                document.getElementById('posVal').innerText = `X:${data.x.toFixed(1)} Y:${data.y.toFixed(1)}`;
+              }
+              if (document.getElementById('yawVal')) {
+                document.getElementById('yawVal').innerText = `${data.yaw_deg.toFixed(1)}°`;
+              }
+              if (document.getElementById('lidarVal')) {
+                const el = document.getElementById('lidarVal');
+                el.innerText = `${data.min_dist.toFixed(2)} m`;
+                el.style.color = data.min_dist < 1.5 ? '#ef233c' : '#00ff66';
+              }
+              if (data.video_mode && document.getElementById('streamSource')) {
+                document.getElementById('streamSource').innerText = 'SOURCE: ' + data.video_mode;
+              }
+            }
+          } catch (e) {}
+        });
+
+        room.on(LivekitClient.RoomEvent.Connected, () => {
+          connStatus.innerText = 'ONLINE (P2P-SFU)';
+          connStatus.style.color = '#00ff66';
+          // 检查已有 Track (防止后进入房间的订阅者黑屏)
+          room.remoteParticipants.forEach(p => {
+            p.trackPublications.forEach(pub => {
+              if (pub.track) handleTrackSubscribed(pub.track);
+            });
+          });
+        });
+
+        room.on(LivekitClient.RoomEvent.Disconnected, () => {
+          connStatus.innerText = 'DISCONNECTED';
+          connStatus.style.color = '#ef233c';
+        });
+        function resumeVideo() {
+          if (remoteVideo && remoteVideo.paused) {
+            remoteVideo.muted = true;
+            remoteVideo.play().catch(() => {});
+          }
+        }
+        window.addEventListener('click', resumeVideo);
+        window.addEventListener('keydown', resumeVideo);
+        window.addEventListener('touchstart', resumeVideo);
+        remoteVideo.addEventListener('play', () => {
+          const ov = document.getElementById('playOverlay');
+          if (ov) ov.style.display = 'none';
+        });
+        remoteVideo.addEventListener('pause', () => {
+          const ov = document.getElementById('playOverlay');
+          if (ov && remoteVideo.srcObject) ov.style.display = 'flex';
+        });
+        document.getElementById('playOverlay')?.addEventListener('click', resumeVideo);
+
+        // 连入本地 LiveKit Server (端口 7880)
+        const wsUrl = `ws://${window.location.hostname}:7880`;
+        console.log('[LiveKit] Connecting to:', wsUrl);
+        await room.connect(wsUrl, token);
+
+      } catch (err) {
+        console.error('[LiveKit] Connection error:', err);
+        connStatus.innerText = 'OFFLINE (Check 7880)';
+        connStatus.style.color = '#ef233c';
+      }
+    }
+    window.addEventListener('load', initLiveKit);
+
+    // 2. 发送 DataPacket 控制指令 (关键参数: reliable: false 极速非可靠 UDP 模式)
+    let lastSent = 0;
+    function sendControl(linear, angular, force = false) {
+      linearVal.innerText = linear.toFixed(2);
+      angularVal.innerText = angular.toFixed(2);
+
+      const now = Date.now();
+      if (!force && now - lastSent < 45) return; // 约 20Hz 节流
+      lastSent = now;
+
+      if (room && room.state === 'connected') {
+        const payload = new TextEncoder().encode(JSON.stringify({ v: linear, w: angular }));
+        // 关键: reliable: false 采用 SCTP/UDP 极速模式，零队头阻塞！
+        room.localParticipant.publishData(payload, { reliable: false });
+      }
+    }
+
+    // 持续高频保持心跳
+    setInterval(() => {
+      if (targetLinear !== 0 || targetAngular !== 0) {
+        sendControl(targetLinear, targetAngular, true);
+      }
+    }, 100);
+
+    // 3. 键盘驱动 (WASD)
+    window.addEventListener('keydown', (e) => {
+      if (['w', 'a', 's', 'd', 'W', 'A', 'S', 'D', ' '].includes(e.key)) e.preventDefault();
+      keysPressed[e.key.toLowerCase()] = true;
+      if (e.key === ' ') {
+        emergencyStop();
+      } else {
+        updateKeyboardDrive();
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      keysPressed[e.key.toLowerCase()] = false;
+      updateKeyboardDrive();
+    });
+
+    function updateKeyboardDrive() {
+      let v = 0.0;
+      let w = 0.0;
+      const wKey = document.getElementById('keyW');
+      const aKey = document.getElementById('keyA');
+      const sKey = document.getElementById('keyS');
+      const dKey = document.getElementById('keyD');
+
+      if (keysPressed['w']) { v += 1.0; wKey.classList.add('active'); } else { wKey.classList.remove('active'); }
+      if (keysPressed['s']) { v -= 0.8; sKey.classList.add('active'); } else { sKey.classList.remove('active'); }
+      if (keysPressed['a']) { w += 1.2; aKey.classList.add('active'); } else { aKey.classList.remove('active'); }
+      if (keysPressed['d']) { w -= 1.2; dKey.classList.add('active'); } else { dKey.classList.remove('active'); }
+
+      targetLinear = v;
+      targetAngular = w;
+      sendControl(targetLinear, targetAngular);
+    }
+
+    // 4. 虚拟触摸摇杆 (Canvas)
+    const canvas = document.getElementById('joystickCanvas');
+    const ctx = canvas.getContext('2d');
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const maxRadius = 55;
+    let knobX = centerX;
+    let knobY = centerY;
+    let isDragging = false;
+
+    function drawJoystick() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, maxRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = '#1b263b';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(knobX, knobY, 24, 0, Math.PI * 2);
+      ctx.fillStyle = isDragging ? '#00ffcc' : '#28374f';
+      ctx.fill();
+      ctx.strokeStyle = '#00ffcc';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    drawJoystick();
+
+    function handlePointer(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      let dx = clientX - rect.left - centerX;
+      let dy = clientY - rect.top - centerY;
+      const dist = Math.hypot(dx, dy);
+      if (dist > maxRadius) {
+        dx = (dx / dist) * maxRadius;
+        dy = (dy / dist) * maxRadius;
+      }
+      knobX = centerX + dx;
+      knobY = centerY + dy;
+      drawJoystick();
+      targetLinear = parseFloat((-dy / maxRadius * 1.5).toFixed(2));
+      targetAngular = parseFloat((-dx / maxRadius * 2.0).toFixed(2));
+      sendControl(targetLinear, targetAngular);
+    }
+
+    canvas.addEventListener('mousedown', (e) => { isDragging = true; handlePointer(e.clientX, e.clientY); });
+    window.addEventListener('mousemove', (e) => { if (isDragging) handlePointer(e.clientX, e.clientY); });
+    window.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        knobX = centerX; knobY = centerY; drawJoystick();
+        targetLinear = 0.0; targetAngular = 0.0; sendControl(0, 0);
+      }
+    });
+
+    canvas.addEventListener('touchstart', (e) => { isDragging = true; handlePointer(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); });
+    window.addEventListener('touchmove', (e) => { if (isDragging) handlePointer(e.touches[0].clientX, e.touches[0].clientY); });
+    window.addEventListener('touchend', () => {
+      if (isDragging) {
+        isDragging = false;
+        knobX = centerX; knobY = centerY; drawJoystick();
+        targetLinear = 0.0; targetAngular = 0.0; sendControl(0, 0);
+      }
+    });
+
+    function emergencyStop() {
+      targetLinear = 0.0; targetAngular = 0.0;
+      for (const k in keysPressed) keysPressed[k] = false;
+      document.querySelectorAll('.key-btn').forEach(b => b.classList.remove('active'));
+      knobX = centerX; knobY = centerY; drawJoystick();
+      sendControl(0, 0, true);
+    }
+    estopBtn.addEventListener('click', emergencyStop);
+
+    // 5. 连接状态与 RTT
+    setInterval(() => {
+      if (room && room.state === 'connected') {
+        connStatus.innerText = 'ONLINE (P2P-SFU)';
+        connStatus.style.color = '#00ff66';
+        pingVal.innerText = '< 15 ms';
+      }
+    }, 1000);
+  </script>
+</body>
+</html>

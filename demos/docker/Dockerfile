@@ -37,6 +37,7 @@ COPY cpp_ros2_control_demo /ros2_ws/src/cpp_ros2_control_demo
 COPY nav2_costmap_demo /ros2_ws/src/nav2_costmap_demo
 COPY multimedia_av_demo /ros2_ws/src/multimedia_av_demo
 COPY teleop_cockpit_demo /ros2_ws/src/teleop_cockpit_demo
+COPY robot_simulation_demo /ros2_ws/src/robot_simulation_demo
 COPY launch_demo /ros2_ws/src/launch_demo
 
 # 编译所有功能包

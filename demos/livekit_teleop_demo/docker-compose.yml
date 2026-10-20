@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # 1. LiveKit 核心 SFU 媒体服务器 (WebRTC 流媒体与 DataChannel 中继中心)
+  livekit-server:
+    image: livekit/livekit-server:latest
+    container_name: livekit-sfu-server
+    command: --dev --bind 0.0.0.0
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+    restart: unless-stopped
+
+  # 2. 机器人端代理节点 (生成 1280x720@30FPS 视频推流 + 监听 DataChannel UDP 控制指令)
+  robot-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: livekit-robot-agent
+    environment:
+      - LIVEKIT_URL=ws://livekit-server:7880
+      - LIVEKIT_ROOM=robot_cockpit
+      - PYTHONUNBUFFERED=1
+      - VIDEO_FILE=/app/assets/driving_feed.mp4
+    volumes:
+      - ./assets:/app/assets
+      - ./robot_livekit_agent.py:/app/robot_livekit_agent.py
+    command: python3 robot_livekit_agent.py
+    depends_on:
+      - livekit-server
+    restart: unless-stopped
+
+  # 3. 驾驶舱 Web 前端与动态 Token 签发服务 (宿主机浏览器打开 http://localhost:8088 即可开控)
+  web-cockpit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: livekit-web-cockpit
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./web:/app/web
+      - ./web_server.py:/app/web_server.py
+    command: python3 web_server.py
+    depends_on:
+      - livekit-server
+    restart: unless-stopped
