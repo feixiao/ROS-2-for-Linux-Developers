@@ -1,0 +1,50 @@
+% ==============================================================================
+% ROS 2 for Linux Developers - Custom LaTeX Preamble for Pandoc PDF Generation
+% ==============================================================================
+
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+\usepackage{fancyvrb}
+\usepackage{booktabs}
+\usepackage{array}
+
+% Define brand palette
+\definecolor{primaryblue}{RGB}{24, 100, 171}
+\definecolor{codebg}{RGB}{248, 249, 250}
+\definecolor{codeborder}{RGB}{222, 226, 230}
+\definecolor{headergray}{RGB}{108, 117, 125}
+
+% Running headers and footers
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{headergray}《Linux 工程师的 ROS 2 工业级实战手册》}
+\fancyhead[R]{\small\color{headergray}\nouppercase{\leftmark}}
+\fancyfoot[C]{\small\color{headergray}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+\renewcommand{\chaptermark}[1]{\markboth{#1}{}}
+
+% Ensure plain pages (e.g. chapter starts) have centered page numbers
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \fancyfoot[C]{\small\color{headergray}\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+}
+
+% Code block styling with fancyvrb
+\RecustomVerbatimEnvironment{Highlighting}{Verbatim}{
+  frame=single,
+  framesep=2.5mm,
+  rulecolor=\color{codeborder},
+  fillcolor=\color{codebg},
+  fontsize=\footnotesize,
+  commandchars=\\\{\}
+}
+
+% Table styling enhancements
+\setlength{\tabcolsep}{8pt}
+\renewcommand{\arraystretch}{1.2}
+
+% Avoid orphan and widow lines
+\widowpenalty=10000
+\clubpenalty=10000

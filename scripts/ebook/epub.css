@@ -1,0 +1,225 @@
+@charset "UTF-8";
+
+/* ==============================================================================
+   ROS 2 for Linux Developers - Custom EPUB Stylesheet
+   Optimized for Apple Books, Calibre, Kindle, KOReader & Modern E-readers
+   ============================================================================== */
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Source Han Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+  line-height: 1.75;
+  color: #1f2937;
+  padding: 1rem;
+  margin: 0 auto;
+  max-width: 900px;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  line-height: 1.35;
+  color: #0f172a;
+  margin-top: 2rem;
+  margin-bottom: 0.8rem;
+  page-break-after: avoid;
+}
+
+h1 {
+  font-size: 1.95rem;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 0.45rem;
+  margin-top: 2.5rem;
+  page-break-before: always;
+}
+
+h2 {
+  font-size: 1.45rem;
+  border-left: 4px solid #0284c7;
+  padding-left: 0.65rem;
+  margin-top: 1.8rem;
+}
+
+h3 {
+  font-size: 1.2rem;
+  color: #1e293b;
+  margin-top: 1.4rem;
+}
+
+h4 {
+  font-size: 1.05rem;
+  color: #334155;
+}
+
+p {
+  margin-top: 0;
+  margin-bottom: 1.15rem;
+  text-align: justify;
+  text-justify: inter-ideograph;
+}
+
+/* Code & Pre */
+code {
+  font-family: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "DejaVu Sans Mono", monospace;
+  font-size: 0.88em;
+  background-color: #f1f5f9;
+  color: #0f172a;
+  padding: 0.18em 0.42em;
+  border-radius: 4px;
+}
+
+pre {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 1rem 1.1rem;
+  overflow-x: auto;
+  font-size: 0.85em;
+  line-height: 1.5;
+  margin: 1.2rem 0;
+  page-break-inside: avoid;
+}
+
+pre code {
+  background: transparent;
+  padding: 0;
+  border: none;
+  font-size: 1em;
+  color: inherit;
+  white-space: pre;
+}
+
+/* Callouts & Blockquotes */
+blockquote {
+  border-left: 4px solid #0284c7;
+  background-color: #f0f9ff;
+  color: #0369a1;
+  padding: 0.9rem 1.25rem;
+  margin: 1.3rem 0;
+  border-radius: 0 6px 6px 0;
+  page-break-inside: avoid;
+}
+
+blockquote p {
+  color: #0c4a6e;
+  margin-bottom: 0.6rem;
+}
+
+blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* Lists */
+ul, ol {
+  padding-left: 1.6rem;
+  margin-top: 0.4rem;
+  margin-bottom: 1.15rem;
+}
+
+li {
+  margin-bottom: 0.45rem;
+}
+
+/* Tables */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.4rem 0;
+  font-size: 0.88em;
+  page-break-inside: avoid;
+}
+
+th, td {
+  border: 1px solid #cbd5e1;
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background-color: #f1f5f9;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+/* Links */
+a {
+  color: #0284c7;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 2rem 0;
+}
+
+/* Navigation & Cover */
+nav#toc ol {
+  list-style-type: none;
+  padding-left: 1.2rem;
+}
+
+nav#toc > ol {
+  padding-left: 0;
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #0b0f19;
+    color: #cbd5e1;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    color: #f8fafc;
+  }
+  h1 {
+    border-bottom-color: #1e293b;
+  }
+  h2 {
+    border-left-color: #38bdf8;
+  }
+  code {
+    background-color: #1e293b;
+    color: #e2e8f0;
+  }
+  pre {
+    background-color: #0f172a;
+    border-color: #1e293b;
+    color: #e2e8f0;
+  }
+  blockquote {
+    background-color: #0c1a2d;
+    border-left-color: #38bdf8;
+    color: #7dd3fc;
+  }
+  blockquote p {
+    color: #bae6fd;
+  }
+  table {
+    border-color: #334155;
+  }
+  th, td {
+    border-color: #334155;
+  }
+  th {
+    background-color: #1e293b;
+    color: #f1f5f9;
+  }
+  tr:nth-child(even) {
+    background-color: #111827;
+  }
+  a {
+    color: #38bdf8;
+  }
+  hr {
+    border-top-color: #1e293b;
+  }
+}

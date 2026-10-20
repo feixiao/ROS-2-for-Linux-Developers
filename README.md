@@ -184,6 +184,9 @@ ros2 launch launch_demo demo.launch.py
 
 ```bash
 make help          # 查看所有可用目标与说明
+make book          # 一键编译生成 PDF 与 EPUB 全套工业级电子书
+make book-pdf      # 仅生成排版精美的 PDF 实战手册
+make book-epub     # 仅生成支持移动端/Kindle 的 EPUB 电子书
 make build         # 一键调用 colcon 编译并导出 compile_commands.json
 make test          # 自动化语法校验与完整性测试套件
 make docker-build  # 构建生产级多阶段瘦身镜像
@@ -208,6 +211,25 @@ docker run -it --rm -p 8080:8080 ros2_linux_test ros2 launch teleop_cockpit_demo
 - **键盘 WASD 驾驶**：按住 `W` 键时，视窗网格高速向后倒退，速度表指针即刻飙升；按 `A/D` 转向时地平线动态倾斜；松开按键自动减速刹车；
 - **虚拟触摸摇杆**：鼠标或触控拖拽摇杆，实时计算速度矢量；
 - **毫秒级遥测**：顶部跳动实时往返延迟（`RTT < 30ms`）与一键紧急制动（`E-Stop`）。
+
+### 方式 5：一键生成 PDF 与 EPUB 电子书 (离线精读与跨设备阅读)
+
+手册支持一键打包编译为排版精良的工业级出版物格式（支持 macOS、Ubuntu Linux 与 Docker 环境）：
+
+```bash
+# 一键生成 PDF 与 EPUB 全套格式 (产物输出至 build/ebook/)
+make book
+
+# 或者分别按需生成
+make book-pdf     # 输出 build/ebook/ROS2_Linux_Handbook.pdf (~100页精排版)
+make book-epub    # 输出 build/ebook/ROS2_Linux_Handbook.epub (支持暗黑模式)
+```
+
+> **电子书特性**：
+> - **高质感排版**：包含专属工业级向量封面（Cover Art）、三级导航目录与章节页眉页脚页码标注。
+> - **字体自动适配**：内置跨平台字体检测器（macOS 自动选用 Songti / Menlo，Linux 选用 Noto CJK / DejaVu Mono）。
+> - **代码与公式优化**：长代码块平滑折行与浅灰底框美化，LaTeX 数学公式原生渲染。
+> - **环境依赖**：依赖 `pandoc` 与 `xelatex`（生成 EPUB 仅需 `pandoc`）。
 
 ---
 

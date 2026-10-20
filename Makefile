@@ -5,13 +5,26 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-.PHONY: help build clean test test-integration sysctl-apply check-health service-install cockpit docker-build docker-up docker-down lint
+.PHONY: help build clean test test-integration sysctl-apply check-health service-install cockpit docker-build docker-up docker-down lint book book-pdf book-epub ebook pdf epub
 
 help: ## 显示可用指令与说明 (Show help menu)
 	@echo "========================================================================"
 	@echo "ROS 2 for Linux Developers - 工程自动化指令集"
 	@echo "========================================================================"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
+
+book: ## 一键生成 PDF 与 EPUB 全套电子书 (Build PDF & EPUB e-books)
+	@python3 scripts/build_ebook.py --format all
+
+book-pdf: ## 编译工业级排版 PDF 实战手册 (Build PDF e-book)
+	@python3 scripts/build_ebook.py --format pdf
+
+book-epub: ## 编译移动端与电子书阅读器 EPUB 手册 (Build EPUB e-book)
+	@python3 scripts/build_ebook.py --format epub
+
+ebook: book
+pdf: book-pdf
+epub: book-epub
 
 build: ## 使用 colcon 编译所有 demo 功能包 (带符号链接与调试符号导出)
 	@echo ">>> 正在编译所有 ROS 2 功能包..."

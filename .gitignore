@@ -16,3 +16,7 @@ log/
 .vscode/
 .idea/
 *.swp
+
+# E-Books
+*.pdf
+*.epub
