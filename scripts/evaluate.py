@@ -168,7 +168,7 @@ REQUIRED_TOPICS = {
         "description": "LiDAR SLAM mapping (Cartographer / Slam Toolbox), scan matching, and AMCL localization"
     },
     "audio_video_multimedia": {
-        "keywords": ["音视频", "audio", "video", "gstreamer", "webrtc", "image_transport", "cv_bridge", "pcm", "h.264", "h264"],
+        "keywords": ["音视频", "audio", "video", "gstreamer", "rtsp", "image_transport", "cv_bridge", "pcm", "h.264", "h264"],
         "weight": 1.0,
         "description": "Industrial Audio/Video multimedia pipelines, hardware codecs, and multimodal streaming"
     }

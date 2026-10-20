@@ -216,7 +216,7 @@ private:
 
 ## 11.6 Linux GStreamer 硬件编解码加速集成
 
-对于远程低延迟图传（WebRTC / RTSP），CPU 软编 H.264 会消耗巨额算力。
+对于远程低延迟图传（RTSP / RTP），CPU 软编 H.264 会消耗巨额算力。
 在 Linux 嵌入式设备（如 NVIDIA Jetson）上，推荐在 ROS 2 节点中直接构建 **GStreamer 硬件编解码流水线**：
 
 ```bash

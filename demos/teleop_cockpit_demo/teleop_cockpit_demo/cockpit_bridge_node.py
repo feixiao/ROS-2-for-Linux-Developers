@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
 """
-ROS 2 Teleoperation Cockpit Bridge Node with Real WebRTC & Low-Latency Stream.
+ROS 2 Teleoperation Cockpit Bridge Node (Pure Linux Stream & Control).
 Features:
-1. Native WebRTC P2P Support (MediaStream video track + DataChannel UDP control).
-2. Dynamic 3D Perspective Ground Grid & Artificial Horizon HUD Synthesizer (1280x720 @ 30 FPS).
-3. Dual-channel teleop control: parses WebRTC DataChannel / HTTP joystick commands and publishes to /cmd_vel.
+1. Dynamic 3D Perspective Ground Grid & Artificial Horizon HUD Synthesizer (1280x720 @ 30 FPS).
+2. Embedded multi-threaded HTTP Server on port 8080 serving cockpit UI and low-latency MJPEG video stream.
+3. Teleop control channel: parses keyboard/joystick commands and publishes to /cmd_vel.
 4. Auto-braking safety watchdog (resets velocity to zero on connection loss or timeout).
-5. Seamless graceful fallback to MJPEG stream if WebRTC is not negotiated.
 """
 
-import asyncio
-import json
 import math
 import os
 import sys
 import threading
 import time
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 import cv2
@@ -32,46 +29,15 @@ try:
 except ImportError:
     HAS_CV_BRIDGE = False
 
-try:
-    import aiortc
-    from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
-    from av import VideoFrame
-    HAS_AIORTC = True
-except ImportError:
-    HAS_AIORTC = False
-
 
 class SharedState:
     current_linear = 0.0
     current_angular = 0.0
     last_cmd_time = time.time()
     latest_jpeg = None
-    latest_bgr = None
     lock = threading.Lock()
     grid_offset = 0.0
     horizon_angle = 0.0
-
-
-if HAS_AIORTC:
-    class RobotVideoTrack(MediaStreamTrack):
-        kind = "video"
-
-        def __init__(self):
-            super().__init__()
-            self._timestamp = 0
-
-        async def recv(self):
-            pts, time_base = await self.next_timestamp()
-            with SharedState.lock:
-                frame_bgr = SharedState.latest_bgr
-
-            if frame_bgr is None:
-                frame_bgr = np.zeros((720, 1280, 3), dtype=np.uint8)
-
-            new_frame = VideoFrame.from_ndarray(frame_bgr, format="bgr24")
-            new_frame.pts = pts
-            new_frame.time_base = time_base
-            return new_frame
 
 
 class CockpitHttpHandler(BaseHTTPRequestHandler):
@@ -92,7 +58,7 @@ class CockpitHttpHandler(BaseHTTPRequestHandler):
             self.wfile.write(html_content)
 
         elif path == '/stream':
-            # 低延迟连续 MJPEG 视频流回退传输
+            # 低延迟连续 MJPEG 视频流传输
             self.send_response(200)
             self.send_header('Age', '0')
             self.send_header('Cache-Control', 'no-cache, private')
@@ -112,11 +78,12 @@ class CockpitHttpHandler(BaseHTTPRequestHandler):
                         self.end_headers()
                         self.wfile.write(jpeg_bytes)
                         self.wfile.write(b'\r\n')
-                    except (BrokenPipeError, ConnectionResetError):
+                    except (BrokenPipeError, ConnectionResetError, Exception):
                         break
                 time.sleep(0.033)
 
         elif path == '/cmd':
+            # 解析浏览器发送的速度控制指令
             query = parse_qs(parsed.query)
             v = float(query.get('v', [0.0])[0])
             w = float(query.get('w', [0.0])[0])
@@ -137,44 +104,6 @@ class CockpitHttpHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b'pong')
 
-        elif path == '/webrtc_status':
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            status = {"has_aiortc": HAS_AIORTC}
-            self.wfile.write(json.dumps(status).encode('utf-8'))
-
-        else:
-            self.send_response(404)
-            self.end_headers()
-
-    def do_POST(self):
-        parsed = urlparse(self.path)
-        if parsed.path == '/offer':
-            if not HAS_AIORTC:
-                self.send_response(501)
-                self.end_headers()
-                self.wfile.write(b'{"error":"WebRTC not supported on backend, use MJPEG fallback"}')
-                return
-
-            content_length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(content_length)
-            try:
-                offer_data = json.loads(body.decode('utf-8'))
-                future = asyncio.run_coroutine_threadsafe(
-                    self.server.node.handle_webrtc_offer(offer_data),
-                    self.server.async_loop
-                )
-                answer = future.result(timeout=10.0)
-
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps(answer).encode('utf-8'))
-            except Exception as e:
-                self.send_response(500)
-                self.end_headers()
-                self.wfile.write(f'{{"error":"{str(e)}"}}'.encode('utf-8'))
         else:
             self.send_response(404)
             self.end_headers()
@@ -215,34 +144,19 @@ class TeleopCockpitBridgeNode(Node):
             10
         )
 
-        # 1. 启动专用 Asyncio 事件循环线程 (驱动 WebRTC)
-        self.async_loop = asyncio.new_event_loop()
-        self.async_thread = threading.Thread(target=self.run_async_loop, daemon=True)
-        self.async_thread.start()
-
-        # 2. 启动嵌入式 HTTP Web 服务线程
+        # 1. 启动嵌入式多线程 HTTP Web 服务线程
         self.http_thread = threading.Thread(target=self.run_server, daemon=True)
         self.http_thread.start()
 
-        # 3. 定时器 (30Hz): 驱动 HUD 画面渲染与图像编码
+        # 2. 定时器 (30Hz): 驱动 HUD 画面渲染与图像编码
         self.render_timer = self.create_timer(1.0 / 30.0, self.render_hud_frame)
 
-        # 4. 定时器 (20Hz): 执行底盘控制发布与安全看门狗检测
+        # 3. 定时器 (20Hz): 执行底盘控制发布与安全看门狗检测
         self.cmd_timer = self.create_timer(1.0 / 20.0, self.control_loop)
-
-        self.pcs = set()
 
         self.get_logger().info('======================================================')
         self.get_logger().info(f'>>> Teleoperation Cockpit Ready at http://localhost:{self.port} <<<')
-        if HAS_AIORTC:
-            self.get_logger().info('>>> WebRTC Protocol Engine: ENABLED (VideoTrack + DataChannel UDP) <<<')
-        else:
-            self.get_logger().info('>>> WebRTC Engine: Not found, operating in high-speed MJPEG fallback mode <<<')
         self.get_logger().info('======================================================')
-
-    def run_async_loop(self):
-        asyncio.set_event_loop(self.async_loop)
-        self.async_loop.run_forever()
 
     def on_camera_image(self, msg):
         if self.bridge is not None:
@@ -252,49 +166,13 @@ class TeleopCockpitBridgeNode(Node):
                 pass
 
     def run_server(self):
-        server = HTTPServer(('0.0.0.0', self.port), CockpitHttpHandler)
-        server.node = self
-        server.async_loop = self.async_loop
+        server = ThreadingHTTPServer(('0.0.0.0', self.port), CockpitHttpHandler)
         server.serve_forever()
-
-    async def handle_webrtc_offer(self, offer_data):
-        pc = RTCPeerConnection()
-        self.pcs.add(pc)
-
-        # 挂载机器人的实时视频轨道
-        video_track = RobotVideoTrack()
-        pc.addTrack(video_track)
-
-        @pc.on("datachannel")
-        def on_datachannel(channel):
-            @channel.on("message")
-            def on_message(message):
-                try:
-                    data = json.loads(message)
-                    v = float(data.get("v", 0.0))
-                    w = float(data.get("w", 0.0))
-                    with SharedState.lock:
-                        SharedState.current_linear = v
-                        SharedState.current_angular = w
-                        SharedState.last_cmd_time = time.time()
-                except Exception:
-                    pass
-
-        @pc.on("connectionstatechange")
-        async def on_connectionstatechange():
-            if pc.connectionState == "failed" or pc.connectionState == "closed":
-                await pc.close()
-                self.pcs.discard(pc)
-
-        await pc.setRemoteDescription(RTCSessionDescription(sdp=offer_data["sdp"], type=offer_data["type"]))
-        answer = await pc.createAnswer()
-        await pc.setLocalDescription(answer)
-
-        return {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}
 
     def control_loop(self):
         now = time.time()
         with SharedState.lock:
+            # 500ms 安全看门狗
             if now - SharedState.last_cmd_time > 0.5:
                 SharedState.current_linear = 0.0
                 SharedState.current_angular = 0.0
@@ -315,7 +193,6 @@ class TeleopCockpitBridgeNode(Node):
             SharedState.grid_offset = (SharedState.grid_offset + v * 8.0) % 60.0
             SharedState.horizon_angle += w * 1.5
             grid_offset = SharedState.grid_offset
-            roll = SharedState.horizon_angle
 
         if self.external_frame is not None:
             frame = cv2.resize(self.external_frame, (width, height))
@@ -365,8 +242,7 @@ class TeleopCockpitBridgeNode(Node):
         cv2.putText(frame, "TARGET: WAYPOINT", (box_x - 45, box_y - 42),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.45, amber_color, 1, cv2.LINE_AA)
 
-        protocol_str = "PROTOCOL: WebRTC P2P (UDP)" if HAS_AIORTC else "PROTOCOL: MJPEG Stream (TCP)"
-        cv2.putText(frame, f"ROS 2 TELEOP // {protocol_str}", (30, 45),
+        cv2.putText(frame, "ROS 2 TELEOP // COCKPIT LIVE STREAM", (30, 45),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255), 2, cv2.LINE_AA)
         cv2.putText(frame, f"LINEAR SPD : {v:+.2f} m/s", (30, 85),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 204), 2, cv2.LINE_AA)
@@ -379,9 +255,8 @@ class TeleopCockpitBridgeNode(Node):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.55, (160, 180, 200), 1, cv2.LINE_AA)
 
         ret, jpeg = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
-        with SharedState.lock:
-            SharedState.latest_bgr = frame
-            if ret:
+        if ret:
+            with SharedState.lock:
                 SharedState.latest_jpeg = jpeg.tobytes()
 
 

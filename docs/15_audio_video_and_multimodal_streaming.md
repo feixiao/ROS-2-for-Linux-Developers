@@ -8,8 +8,7 @@
 - 语音交互则要求消除环境噪声、麦克风回声并与视觉画面保持纳秒级时钟对齐。
 
 如果简单将音视频流当作普通的 ROS 2 话题收发，系统会瞬间因内存拷贝耗尽带宽，引发严重丢帧与卡顿。
-本章跳过玩具式的 OpenCV 代码，直接从 Linux 多媒体底层（V4L2、ALSA/PipeWire、GStreamer、WebRTC）深度拆解工业级音视频开发全栈。
-
+本章跳过玩具式的 OpenCV 代码，直接从 Linux 多媒体底层（V4L2、ALSA/PipeWire、GStreamer、RTSP/H.264）深度拆解工业级音视频开发全栈。
 ---
 
 ## 15.1 视频数据流全链路：从 Linux V4L2 到 ROS 2 图像传输
@@ -178,8 +177,7 @@ private:
 
 ---
 
-## 15.3 工业级超低延迟图传与硬件加速（GStreamer / WebRTC）
-
+## 15.3 工业级超低延迟图传与硬件加速（GStreamer / RTSP）
 当机器人通过 4G/5G 蜂窝网络进行远程安全员接管（Teleoperation）时，端到端延迟必须控制在 **80 毫秒以内**（人类踩刹车的生理反应时间约 200ms）。
 
 ### 1. GStreamer 管道与 ROS 2 节点的内存对接（`appsink`）
@@ -196,12 +194,11 @@ gst-launch-1.0 nvarguscamerasrc ! \
 - `insert-sps-pps=true`：每个关键帧（IDR）前必须携带序列参数集（SPS）与图像参数集（PPS），确保网络丢包后接收端能即刻解码，无需等待全局关键帧周期；
 - `drop=true`：当消费端处理不及时，立即丢弃旧帧，杜绝队头阻塞（Head-of-Line Blocking）导致的时延累积。
 
-### 2. 5G 远程驾驶方案：WebRTC 点对点直连
-在公网穿透（NAT Traversal）场景下，传统的 RTMP 或 RTSP 依赖 TCP 重传或庞大的服务端转发，延迟通常在 1~3 秒以上。
-**WebRTC（Web Real-Time Communication）** 是车队远程遥控的工业终局方案：
-1. **P2P 打洞**：利用 STUN/TURN 服务器建立端到端 UDP 点对点直连；
-2. **拥塞控制（GCC - Google Congestion Control）**：根据 5G 基站瞬时丢包率与 RTT，动态自适应微调摄像头编码码率（从 1Mbps 到 8Mbps 动态平滑呼吸），在弱网环境下优先保流畅度与超低延迟。
-
+### 2. 5G 远程驾驶方案：RTP / UDP 硬件硬编直推
+在公网传输中，传统的 TCP 视频流（如 HTTP 慢速大包或 RTMP）一旦遭遇无线基站信号抖动，TCP 滑动窗口与强制重传机制会导致严重的队头阻塞（Head-of-Line Blocking），使画面延迟从 50ms 迅速滚雪球累积到数秒。
+基于 **UDP / RTP H.264 视频流** 是工业车队远程低延迟图传的标杆：
+1. **失步即丢，杜绝累积**：遇到蜂窝网络丢包时，宁可丢掉旧的 B 帧或 P 帧，也绝不等待重传，确保驾驶员看到的画面始终是机器人当前的物理现实；
+2. **动态码率调谐**：配合 5G 模组的 RSRP 信号强度反馈，实时动态微调硬件编码器的目标比特率（从 1Mbps 到 6Mbps 平滑呼吸）。
 ### 3. 浏览器零依赖监控：`web_video_server`
 在研发与调试阶段，无需在每台办公电脑安装 ROS 2 或 RViz2，直接启动轻量级视频流转码服务：
 ```bash
@@ -241,7 +238,7 @@ alsamixer    # Linux 终端 TUI 交互式微调麦克风增益与硬件自动增
 | **图像订阅** | `cv_bridge::toCvCopy` 全量深拷贝 | `cv_bridge::toCvShare` 零拷贝指针共享 |
 | **话题架构** | 裸 `sensor_msgs/Image` 通用发布 | `image_transport` 自动分发 raw 与 compressed 压缩流 |
 | **音频采样** | 44.1kHz / 48kHz 双声道大吞吐 | 16kHz 16-bit 单声道线性 PCM（对接 ASR 黄金格式） |
-| **远程图传** | 局域网 DDS 强推裸图导致丢包 | GStreamer 硬编 H.264 / WebRTC 跨公网（延迟 < 80ms） |
+| **远程图传** | 局域网 DDS 强推裸图导致丢包 | GStreamer 硬编 H.264 / UDP 直推（延迟 < 80ms） |
 | **视听融合** | 各自单线程独立消费产生时间差 | `message_filters` 基于时间戳纳秒级对齐融合 |
 
 掌握了音视频流的高吞吐与硬实时传输，移动机器人便具备了向多模态视觉语言大模型（VLM）与具身智能体演进的完整工程能力，为人形双足机器人、智能移动底盘与远程无人驾驶舱提供了坚实的技术地基。

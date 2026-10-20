@@ -100,7 +100,7 @@
 +  - 视频全链路：V4L2 采集、sensor_msgs/Image 内存步长 (step)、cv_bridge 零拷贝共享 (`toCvShare`)
 +  - 图像传输优化：image_transport 插件分发体系、CameraInfo 标定与硬件去畸变
 +  - 音频全链路：ALSA/PipeWire 麦克风阵列拓扑、16kHz 16-bit PCM 与 ASR/TTS 具身语音闭环
-+  - 超低延迟远程驾驶：GStreamer 硬件编解码 (H.264)、WebRTC 直连 (延迟 < 80ms) 与 Web 监控
++  - 超低延迟远程驾驶：GStreamer 硬件编解码 (H.264)、RTP 低延迟直连 (延迟 < 80ms) 与 Web 监控
 ---
 
 ## 🛠️ 配套工业级 Demo 工程

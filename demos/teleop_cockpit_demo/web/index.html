@@ -34,7 +34,6 @@
       overflow-x: hidden;
     }
 
-    /* 顶部高科技导航条 */
     header {
       background: var(--card-bg);
       border-bottom: 1px solid var(--border);
@@ -85,7 +84,6 @@
       100% { opacity: 1; transform: scale(1); }
     }
 
-    /* 主操控驾驶舱布局 */
     main {
       flex: 1;
       padding: 20px;
@@ -97,7 +95,6 @@
       width: 100%;
     }
 
-    /* 视频视窗 */
     .viewport-card {
       background: var(--card-bg);
       border: 1px solid var(--border);
@@ -136,7 +133,6 @@
       display: block;
     }
 
-    /* 侧边仪表盘与控制器 */
     aside {
       display: flex;
       flex-direction: column;
@@ -162,7 +158,6 @@
       align-items: center;
     }
 
-    /* 速度表盘指标 */
     .metrics-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -190,7 +185,6 @@
       color: var(--text-muted);
     }
 
-    /* 键盘 WASD 键位指示器 */
     .wasd-cluster {
       display: flex;
       flex-direction: column;
@@ -234,7 +228,6 @@
       opacity: 0.7;
     }
 
-    /* 虚拟触摸摇杆 */
     .joystick-container {
       display: flex;
       justify-content: center;
@@ -249,7 +242,6 @@
       touch-action: none;
     }
 
-    /* 紧急刹车按钮 */
     .estop-btn {
       width: 100%;
       padding: 14px;
@@ -278,7 +270,6 @@
       transform: scale(0.98);
     }
 
-    /* 移动端响应式 */
     @media (max-width: 900px) {
       main {
         grid-template-columns: 1fr;
@@ -304,7 +295,7 @@
     <div class="status-bar">
       <div class="status-item">
         <span class="badge-live"></span>
-        <span id="protoBadge" style="color:#00ffcc; background:rgba(0,255,204,0.15); padding:2px 8px; border-radius:4px; font-size:0.8rem; border:1px solid #00ffcc;">NEGOTIATING...</span>
+        <span style="color:#00ff66;">LIVE STREAM</span>
       </div>
       <div class="status-item">
         <span>RTT:</span>
@@ -318,21 +309,17 @@
   </header>
 
   <main>
-    <!-- 第一人称 FPV 视频流视窗 -->
     <div class="viewport-card">
       <div class="viewport-header">
         <span>CHANNEL: /camera/image_raw</span>
         <span>RESOLUTION: 1280x720 30FPS</span>
       </div>
       <div class="video-wrapper">
-        <video id="remoteVideo" class="video-stream" autoplay playsinline muted style="display:none;"></video>
         <img id="streamImg" class="video-stream" src="/stream" alt="ROS 2 Teleoperation Camera Stream">
       </div>
     </div>
 
-    <!-- 侧边仪表盘与交互操控区 -->
     <aside>
-      <!-- 实时遥测数据 -->
       <div class="panel-card">
         <div class="panel-title">
           <span>底盘动态遥测 (Telemetry)</span>
@@ -351,7 +338,6 @@
         </div>
       </div>
 
-      <!-- 交互控制方式 1: 键盘 WASD -->
       <div class="panel-card">
         <div class="panel-title">
           <span>键盘控制 (WASD Keys)</span>
@@ -379,7 +365,6 @@
         </div>
       </div>
 
-      <!-- 交互控制方式 2: 虚拟触摸摇杆 -->
       <div class="panel-card">
         <div class="panel-title">
           <span>虚拟手柄摇杆 (Virtual Joystick)</span>
@@ -390,7 +375,6 @@
         </div>
       </div>
 
-      <!-- 紧急制动按钮 -->
       <button class="estop-btn" id="estopBtn">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <circle cx="12" cy="12" r="10"></circle>
@@ -402,12 +386,10 @@
   </main>
 
   <script>
-    // 状态量
     let targetLinear = 0.0;
     let targetAngular = 0.0;
     const keysPressed = {};
 
-    // DOM 元素
     const pingVal = document.getElementById('pingVal');
     const linearVal = document.getElementById('linearVal');
     const angularVal = document.getElementById('angularVal');
@@ -463,14 +445,12 @@
     function drawJoystick() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // 外底盘圆环
       ctx.beginPath();
       ctx.arc(centerX, centerY, maxRadius, 0, Math.PI * 2);
       ctx.strokeStyle = '#1b263b';
       ctx.lineWidth = 4;
       ctx.stroke();
 
-      // 内十字参考线
       ctx.beginPath();
       ctx.moveTo(centerX - 12, centerY);
       ctx.lineTo(centerX + 12, centerY);
@@ -480,7 +460,6 @@
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // 拖拽手柄
       ctx.beginPath();
       ctx.arc(knobX, knobY, 24, 0, Math.PI * 2);
       ctx.fillStyle = isDragging ? '#00ffcc' : '#28374f';
@@ -506,7 +485,6 @@
       knobY = centerY + dy;
       drawJoystick();
 
-      // 映射到线速度与角速度: 上下是线速度 (前为正, 后为负), 左右是角速度 (左为正, 右为负)
       targetLinear = parseFloat((-dy / maxRadius * 1.5).toFixed(2));
       targetAngular = parseFloat((-dx / maxRadius * 2.0).toFixed(2));
       sendControl(targetLinear, targetAngular);
@@ -526,7 +504,6 @@
       }
     });
 
-    // 触摸屏手势支持
     canvas.addEventListener('touchstart', (e) => { isDragging = true; handlePointer(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); });
     window.addEventListener('touchmove', (e) => { if (isDragging) handlePointer(e.touches[0].clientX, e.touches[0].clientY); });
     window.addEventListener('touchend', () => {
@@ -554,74 +531,8 @@
     }
     estopBtn.addEventListener('click', emergencyStop);
 
-    // 4. WebRTC 与控制信令核心通道
-    let pc = null;
-    let dataChannel = null;
+    // 4. 发送控制指令与心跳
     let lastSent = 0;
-
-    async function initWebRTC() {
-      const protoBadge = document.getElementById('protoBadge');
-      const remoteVideo = document.getElementById('remoteVideo');
-      const streamImg = document.getElementById('streamImg');
-
-      try {
-        pc = new RTCPeerConnection({
-          iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-        });
-
-        // 创建 WebRTC DataChannel (用于传输手柄摇杆控制报文: UDP 零队头阻塞)
-        dataChannel = pc.createDataChannel('teleop_controls', {
-          ordered: false,
-          maxRetransmits: 0
-        });
-
-        dataChannel.onopen = () => {
-          console.log('[WebRTC] DataChannel connected!');
-          protoBadge.innerText = 'WebRTC P2P (UDP)';
-          protoBadge.style.color = '#00ffcc';
-          protoBadge.style.borderColor = '#00ffcc';
-        };
-
-        dataChannel.onclose = () => {
-          console.warn('[WebRTC] DataChannel closed, falling back to HTTP');
-          protoBadge.innerText = 'MJPEG Fallback (TCP)';
-          protoBadge.style.color = '#ffb703';
-          protoBadge.style.borderColor = '#ffb703';
-        };
-
-        // 接收来自机器人的原生 WebRTC 视频轨 (MediaStream)
-        pc.ontrack = (event) => {
-          console.log('[WebRTC] Video Track received!');
-          remoteVideo.srcObject = event.streams[0];
-          remoteVideo.style.display = 'block';
-          streamImg.style.display = 'none'; // 切换至硬加速 WebRTC 视频流
-        };
-
-        pc.addTransceiver('video', { direction: 'recvonly' });
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-
-        const resp = await fetch('/offer', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sdp: pc.localDescription.sdp, type: pc.localDescription.type })
-        });
-
-        if (resp.ok) {
-          const answer = await resp.json();
-          await pc.setRemoteDescription(answer);
-        } else {
-          throw new Error('WebRTC negotiation rejected by backend');
-        }
-      } catch (err) {
-        console.warn('[WebRTC] Negotiation failed, using fallback stream:', err);
-        protoBadge.innerText = 'MJPEG Stream (TCP)';
-        protoBadge.style.color = '#ffb703';
-        protoBadge.style.borderColor = '#ffb703';
-      }
-    }
-    window.addEventListener('load', initWebRTC);
-
     function sendControl(linear, angular, force = false) {
       linearVal.innerText = linear.toFixed(2);
       angularVal.innerText = angular.toFixed(2);
@@ -630,13 +541,7 @@
       if (!force && now - lastSent < 45) return;
       lastSent = now;
 
-      // 优先走 WebRTC DataChannel (UDP 毫秒级投递)
-      if (dataChannel && dataChannel.readyState === 'open') {
-        dataChannel.send(JSON.stringify({ v: linear, w: angular }));
-      } else {
-        // 优雅降级走 HTTP /cmd 接口
-        fetch(`/cmd?v=${linear}&w=${angular}`, { method: 'GET' }).catch(() => {});
-      }
+      fetch(`/cmd?v=${linear}&w=${angular}`).catch(() => {});
     }
 
     setInterval(() => {
@@ -645,7 +550,7 @@
       }
     }, 100);
 
-    // 5. 毫秒级 RTT Ping 统计
+    // 5. 毫秒级 RTT 延迟探查
     setInterval(async () => {
       const t0 = performance.now();
       try {

@@ -20,7 +20,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-humble-pluginlib \
     ros-humble-image-transport \
     ros-humble-cv-bridge \
-    python3-aiortc \
     && rm -rf /var/lib/apt/lists/*
 
 # 创建工作空间并复制源码
@@ -63,7 +62,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-humble-pluginlib \
     ros-humble-image-transport \
     ros-humble-cv-bridge \
-    python3-aiortc \
     && rm -rf /var/lib/apt/lists/*
 
 # 创建安全非 root 用户
