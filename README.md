@@ -87,6 +87,12 @@
 +  - 实时编码准则：消灭动态内存分配、规避阻塞互斥锁、无锁队列（Lock-Free RingBuffer）
 +  - 机器人运动学建模：URDF/Xacro 刚体惯量张量矩阵与 `<ros2_control>` 硬件接口契约
 +  - 运行时动态热切换控制器（Zero-Downtime Controller Switching）与 CLI 工具集
+
+- **[第 14 章：自主导航全栈（Nav2）与 SLAM 建图定位底层架构](docs/14_nav2_and_slam_architecture.md)**
++  - 工业移动机器人导航架构：Costmap2D 内存一维数组排布与 Bresenham 光线投射膨胀层
++  - 全局路径规划（Smac Hybrid A* / NavFn）与高频局部轨迹追踪（DWB / GPU MPPI 控制器）
++  - 激光雷达 SLAM 建图（扫描匹配与 Ceres 图优化回环）与 AMCL 自适应蒙特卡洛粒子滤波定位
++  - 工业仓储 AGV 参数调优避坑秘籍：多边形 Footprint、动态障碍物清理与摆脱震荡恢复
 ---
 
 ## 🛠️ 配套工业级 Demo 工程
@@ -106,6 +112,7 @@ demos/
 ├── cpp_behavior_tree_demo/# C++ 行为树决策总控工程 (BehaviorTree.CPP 响应式调度)
 ├── cpp_ros2_control_demo/# C++ 实时硬件抽象工程 (SystemInterface 驱动与 URDF 闭环)
 ├── launch_demo/         # 生产级 Python Launch 编排工程 (含 YAML 注入与重映射)
+├── nav2_costmap_demo/   # 工业级自主导航工程 (Nav2 Costmap2D、Smac 规划与 AMCL)
 └── docker/              # 开箱即用的 Dockerfile 与 docker-compose.yml 容器化环境
 ```
 

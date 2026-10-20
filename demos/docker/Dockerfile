@@ -25,6 +25,7 @@ COPY cpp_lifecycle_demo /ros2_ws/src/cpp_lifecycle_demo
 COPY cpp_tf2_demo /ros2_ws/src/cpp_tf2_demo
 COPY cpp_behavior_tree_demo /ros2_ws/src/cpp_behavior_tree_demo
 COPY cpp_ros2_control_demo /ros2_ws/src/cpp_ros2_control_demo
+COPY nav2_costmap_demo /ros2_ws/src/nav2_costmap_demo
 COPY launch_demo /ros2_ws/src/launch_demo
 
 # 编译所有功能包
