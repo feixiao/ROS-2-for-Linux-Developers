@@ -97,10 +97,20 @@
 +  - 工业仓储 AGV 参数调优避坑秘籍：多边形 Footprint、动态障碍物清理与摆脱震荡恢复
 
 - **[第 15 章：工业级音视频流媒体、硬件编解码与多模态交互实战](docs/15_audio_video_and_multimodal_streaming.md)**
-+  - 视频全链路：V4L2 采集、sensor_msgs/Image 内存步长 (step)、cv_bridge 零拷贝共享 (`toCvShare`)
-+  - 图像传输优化：image_transport 插件分发体系、CameraInfo 标定与硬件去畸变
-+  - 音频全链路：ALSA/PipeWire 麦克风阵列拓扑、16kHz 16-bit PCM 与 ASR/TTS 具身语音闭环
-+  - 超低延迟远程驾驶：GStreamer 硬件编解码 (H.264)、RTP 低延迟直连 (延迟 < 80ms) 与 Web 监控
+  - 视频全链路：V4L2 采集、sensor_msgs/Image 内存步长 (step)、cv_bridge 零拷贝共享 (`toCvShare`)
+  - 图像传输优化：image_transport 插件分发体系、CameraInfo 标定与硬件去畸变
+  - 音频全链路：ALSA/PipeWire 麦克风阵列拓扑、16kHz 16-bit PCM 与 ASR/TTS 具身语音闭环
+  - WebRTC 极速推流：GStreamer `webrtcbin` 原理、极低时延调优六大绝招与 SFU 选型对比
+- **[第 16 章：ROS 2 远程遥控与超低延迟音视频图传深度实战](docs/16_webrtc_teleop_deep_dive.md)**
+  - 工业遥控通信瓶颈：TCP 队头阻塞灾难与不可靠 UDP/WebRTC 协议栈
+  - WebRTC 核心原理：SDP 协商、STUN/TURN/ICE 穿透、SRTP 安全加密与 DataChannel
+  - GCC 拥塞控制、TWCC 带宽预测、NetEQ 防抖缓冲与弱网动态码率调优
+  - 生产级全栈落地：GStreamer 硬件编码、Docker 容器化部署与故障排查速查
+- **[第 17 章：工业级机器人远程遥控与超低延迟图传实战：GStreamer + LiveKit (SFU) + ROS 2 架构指南](docs/17_livekit_gstreamer_teleop_guide.md)**
+  - 架构跃迁：纯 P2P 架构的三大致命瓶颈与 LiveKit SFU（选择性转发）工业标准
+  - 车载端 GStreamer + LiveKit Agent 极速推流设计与零拷贝接入
+  - 双向低延迟控制：WebRTC DataChannel 毫秒级 Twist 遥测与底盘看门狗安全防护
+  - Web 远程驾驶舱全套前端接入、仪表盘 HUD 与真实行车流无缝轮播实测
 ---
 
 ## 🛠️ 配套工业级 Demo 工程
@@ -123,6 +133,8 @@ demos/
 ├── nav2_costmap_demo/   # 工业级自主导航工程 (Nav2 Costmap2D、Smac 规划与 AMCL)
 ├── multimedia_av_demo/  # 工业级音视频工程 (OpenCV/image_transport、GStreamer 与音频推流)
 ├── teleop_cockpit_demo/ # 浏览器低延迟驾驶舱 (HUD 航电影像 + 虚拟摇杆/键盘 WASD 遥控)
+├── livekit_teleop_demo/ # 工业级 WebRTC SFU 远程驾驶舱 (LiveKit Server + 车载推流 + 前端 Cockpit)
+├── robot_simulation_demo/ # 车载物理运动学积分底盘与 360° 激光雷达仿真包
 └── docker/              # 开箱即用的 Dockerfile 与 docker-compose.yml 容器化环境
 ```
 
