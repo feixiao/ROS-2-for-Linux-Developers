@@ -1,4 +1,4 @@
-# ROS 2 工业级实战手册：Linux 工程师快速入门指南
+# 《Linux 工程师的 ROS 2 工业级实战手册》（The ROS 2 Linux Handbook）
 
 > **面向人群**：熟悉 Linux 系统编程、网络与运维（进程、Socket、多线程、POSIX 信号、CMake、Python、Docker），希望以最快速度切入 ROS 2（Robot Operating System 2）并进行机器人系统开发的工程师。
 
@@ -69,6 +69,12 @@
 +  - 机器人车队可观测性：Prometheus Metrics Exporter（端口 9100）与 Grafana 监控大屏
 +  - 嵌入式 Linux 裁切与交叉编译：Yocto Project（`meta-ros`）、Sysroot 与 aarch64 构建
 +  - 自动化集群出厂健康体检脚本（`scripts/robot_health_check.sh`）
+
+- **[第 11 章：空间坐标系变换（tf2）与 Linux 高吞吐视觉管道（V4L2 / DMABUF / CUDA）](docs/11_tf2_and_vision_pipelines.md)**
++  - 空间刚体运动学：齐次变换矩阵 $SE(3)$、四元数计算与万向节死锁规避
++  - tf2 时空拓扑树：单父节点约束、`/tf_static` 持久化 QoS 与时间旅行（SLERP 球面插值）
++  - Linux 极速视觉管道：V4L2 ISP 驱动、DMABUF 句柄流转与 CUDA GPU 显存端到端零拷贝
++  - Linux 终端 tf2 诊断利器：`view_frames`（PDF 拓扑图）、`tf2_echo` 与 `tf2_monitor`
 ---
 
 ## 🛠️ 配套工业级 Demo 工程
@@ -84,6 +90,7 @@ demos/
 ├── cpp_service_demo/    # C++ 双向 RPC 服务工程 (加法计算与错误处理)
 ├── cpp_action_demo/     # C++ 动作服务器与客户端 (进度流反馈与取消支持)
 ├── cpp_lifecycle_demo/  # C++ 托管生命周期工程 (LifecycleNode 确定性状态机)
+├── cpp_tf2_demo/        # C++ 空间坐标变换工程 (动态/静态广播器与查询监听器)
 ├── launch_demo/         # 生产级 Python Launch 编排工程 (含 YAML 注入与重映射)
 └── docker/              # 开箱即用的 Dockerfile 与 docker-compose.yml 容器化环境
 ```

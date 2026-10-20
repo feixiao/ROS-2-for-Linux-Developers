@@ -22,6 +22,7 @@ COPY cpp_service_demo /ros2_ws/src/cpp_service_demo
 COPY cpp_action_demo /ros2_ws/src/cpp_action_demo
 COPY cpp_composition_demo /ros2_ws/src/cpp_composition_demo
 COPY cpp_lifecycle_demo /ros2_ws/src/cpp_lifecycle_demo
+COPY cpp_tf2_demo /ros2_ws/src/cpp_tf2_demo
 COPY launch_demo /ros2_ws/src/launch_demo
 
 # 编译所有功能包
@@ -41,6 +42,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-humble-ros2launch \
     ros-humble-rclcpp-components \
     ros-humble-rclcpp-lifecycle \
+    ros-humble-tf2-ros \
+    ros-humble-tf2-geometry-msgs \
     && rm -rf /var/lib/apt/lists/*
 
 # 创建安全非 root 用户
