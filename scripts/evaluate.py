@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 """
-Advanced Evaluation Harness for ROS 2 Handbook for Linux Developers (Segment 4).
+Advanced Evaluation Harness for ROS 2 Handbook for Linux Developers (Segment 5).
 Evaluates:
 1. Documentation structure and coverage of Linux-to-ROS2 concepts.
-2. Production Hardening: Real-Time PREEMPT_RT, SROS2 DDS Security, Hardware Udev/CAN, Rosbag MCAP.
-3. Quality Assurance: Automated testing pyramid (GTest, Pytest, launch_testing).
-4. Linux Kernel & Network Tuning: sysctl parameters (rmem_max, wmem_max, MTU/Jumbo Frames).
-5. Demo package integrity (CMakeLists.txt, package.xml, Python/C++ sources).
-6. Custom Interfaces (.msg / .srv / .action) and rosidl build pipeline.
-7. Component Composition (rclcpp_components & dlopen container).
-8. Lifecycle Node Package (rclcpp_lifecycle::LifecycleNode state callbacks).
-9. Integration Testing (launch_testing) and Unit Testing (GTest/Pytest).
-10. Linux Developer Ergonomics (Makefile, tasks, sysctl scripts).
+2. Systemd Daemonization, Watchdog Supervision, and Cgroups Limits.
+3. Observability, Prometheus Metrics Exporter, and Grafana Dashboarding.
+4. Embedded Linux Cross-Compilation (Yocto, meta-ros, aarch64 sysroots).
+5. Testing Pyramid & Linux Kernel Network Tuning (launch_testing, GTest, Pytest, sysctl).
+6. Demo package integrity (CMakeLists.txt, package.xml, Python/C++ sources).
+7. Custom Interfaces, Component Composition, Lifecycle Nodes.
+8. Linux Developer Ergonomics (Makefile, systemd units, diagnostics scripts).
 """
 
 import os
@@ -106,6 +104,21 @@ REQUIRED_TOPICS = {
         "keywords": ["sysctl", "rmem_max", "wmem_max", "套接字缓冲区", "mtu", "内核调优", "jumbo", "缓冲区"],
         "weight": 1.0,
         "description": "Linux kernel network tuning (sysctl socket buffers, UDP limits, MTU / Jumbo Frames)"
+    },
+    "systemd_watchdog": {
+        "keywords": ["systemd", "watchdog", "unit", "service", "sd_notify", "开机自启", "看门狗", "daemon"],
+        "weight": 1.0,
+        "description": "Systemd daemonization, watchdog supervision, and cgroups resource limits"
+    },
+    "observability_metrics": {
+        "keywords": ["prometheus", "grafana", "metrics", "监控", "遥测", "opentelemetry", "exporter", "指标"],
+        "weight": 1.0,
+        "description": "Observability, Prometheus metrics exporter, and Grafana fleet monitoring"
+    },
+    "embedded_cross_compile": {
+        "keywords": ["yocto", "交叉编译", "cross-compile", "aarch64", "sysroot", "meta-ros", "jetson", "arm64"],
+        "weight": 1.0,
+        "description": "Embedded Linux cross-compilation (Yocto meta-ros, aarch64 toolchains, and sysroots)"
     }
 }
 
@@ -175,7 +188,7 @@ def evaluate_docs():
     }
 
 def evaluate_demos():
-    """Score demo files: packages, sources, IDL, components, lifecycle, testing, sysctl configs."""
+    """Score demo files: packages, sources, IDL, components, lifecycle, testing, sysctl, systemd, metrics."""
     results = {
         "package_xml_valid": 0,
         "package_xml_total": 0,
@@ -195,6 +208,9 @@ def evaluate_demos():
         "launch_testing_valid": 0,
         "unit_tests_valid": 0,
         "sysctl_conf_valid": 0,
+        "systemd_service_valid": 0,
+        "health_check_script_valid": 0,
+        "metrics_exporter_valid": 0,
         "makefile_valid": 0
     }
 
@@ -304,7 +320,24 @@ def evaluate_demos():
     if sysctl_files and any("rmem_max" in f.read_text(encoding="utf-8", errors="ignore") for f in sysctl_files):
         results["sysctl_conf_valid"] = 1
 
-    # 13. Makefile check
+    # 13. Systemd service file
+    systemd_files = list(SCRIPTS_DIR.glob("**/*.service")) + list(ROOT_DIR.glob("**/*.service"))
+    if systemd_files and any("ExecStart" in f.read_text(encoding="utf-8", errors="ignore") for f in systemd_files):
+        results["systemd_service_valid"] = 1
+
+    # 14. Health check diagnostics script
+    health_scripts = list(SCRIPTS_DIR.glob("**/*health*.sh")) + list(ROOT_DIR.glob("**/*health*.sh"))
+    if health_scripts and any("multicast" in f.read_text(encoding="utf-8", errors="ignore") for f in health_scripts):
+        results["health_check_script_valid"] = 1
+
+    # 15. Prometheus metrics exporter
+    has_exporter = any("metrics" in pyf.read_text(encoding="utf-8", errors="ignore") or
+                       "prometheus" in pyf.read_text(encoding="utf-8", errors="ignore")
+                       for pyf in DEMOS_DIR.glob("**/*.py"))
+    if has_exporter:
+        results["metrics_exporter_valid"] = 1
+
+    # 16. Makefile check
     makefile = ROOT_DIR / "Makefile"
     if makefile.exists():
         mf_content = makefile.read_text(encoding="utf-8", errors="ignore")
@@ -369,10 +402,10 @@ def main():
     analogy_score = doc_res["analogy_score"]
 
     # Demo completeness score (0-100)
-    # Expected artifacts in Segment 4:
+    # Expected artifacts in Segment 5:
     # 4+ package.xml, 3+ CMakeLists.txt, 2+ python nodes, 2+ cpp files, 1+ launch file, 1+ Dockerfile,
-    # custom interfaces package, component composition package, lifecycle node package,
-    # launch_testing integration test, unit test (GTest/Pytest), sysctl configuration file, Makefile
+    # custom interfaces, component composition, lifecycle node, launch_testing, unit tests, sysctl config,
+    # systemd unit file, health check script, metrics exporter, Makefile (16 items)
     expected_artifacts = [
         demo_res["package_xml_valid"] >= 4,
         demo_res["cmakelists_valid"] >= 3,
@@ -386,13 +419,16 @@ def main():
         demo_res["launch_testing_valid"] == 1,
         demo_res["unit_tests_valid"] == 1,
         demo_res["sysctl_conf_valid"] == 1,
+        demo_res["systemd_service_valid"] == 1,
+        demo_res["health_check_script_valid"] == 1,
+        demo_res["metrics_exporter_valid"] == 1,
         demo_res["makefile_valid"] == 1
     ]
     demo_completeness = (sum(1 for x in expected_artifacts if x) / len(expected_artifacts)) * 100.0
 
-    # Word count maturity score (0-100, targeting 20,000+ words)
+    # Word count maturity score (0-100, targeting 23,000+ words)
     word_count = doc_res["word_count"]
-    word_count_score = min(100.0, (word_count / 20000.0) * 100.0)
+    word_count_score = min(100.0, (word_count / 23000.0) * 100.0)
 
     # Composite primary score (0-100)
     composite_score = (
@@ -413,13 +449,13 @@ def main():
     print(f"METRIC word_count={word_count}")
 
     # Summary
-    print("\n--- Advanced Evaluation Breakdown (Segment 4) ---")
+    print("\n--- Advanced Evaluation Breakdown (Segment 5) ---")
     print(f"Total Words: {word_count}")
     print(f"Markdown Files: {doc_res.get('file_count', 0)}")
     print(f"Topic Coverage: {topic_cov:.1f}%")
-    print(f"Custom Interfaces (.msg/.srv): {'YES' if demo_res['custom_interfaces_valid'] else 'NO'}")
-    print(f"Component Composition (.so/dlopen): {'YES' if demo_res['component_composition_valid'] else 'NO'}")
-    print(f"Lifecycle Node (.hpp/.cpp): {'YES' if demo_res['lifecycle_node_valid'] else 'NO'}")
+    print(f"Systemd Service File: {'YES' if demo_res['systemd_service_valid'] else 'NO'}")
+    print(f"Health Check Script: {'YES' if demo_res['health_check_script_valid'] else 'NO'}")
+    print(f"Prometheus Metrics Exporter: {'YES' if demo_res['metrics_exporter_valid'] else 'NO'}")
     print(f"Integration Tests (launch_testing): {'YES' if demo_res['launch_testing_valid'] else 'NO'}")
     print(f"Unit Tests (GTest / Pytest): {'YES' if demo_res['unit_tests_valid'] else 'NO'}")
     print(f"Kernel sysctl Config File: {'YES' if demo_res['sysctl_conf_valid'] else 'NO'}")
