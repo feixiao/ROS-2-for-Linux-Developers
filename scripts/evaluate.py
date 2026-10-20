@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """
-Advanced Evaluation Harness for ROS 2 Handbook for Linux Developers (Segment 6).
+Advanced Evaluation Harness for ROS 2 Handbook for Linux Developers (Segment 7).
 Evaluates:
 1. Documentation structure and coverage of Linux-to-ROS2 concepts.
-2. Spatial Geometry & Coordinate Transforms (tf2 tree, quaternions, time travel).
-3. Linux Vision Pipelines (V4L2, DMABUF zero-copy, CUDA, image_transport).
-4. Systemd Daemonization, Watchdog Supervision, and Cgroups Limits.
-5. Observability, Prometheus Metrics Exporter, and Grafana Dashboarding.
-6. Embedded Linux Cross-Compilation (Yocto, meta-ros, aarch64 sysroots).
-7. Testing Pyramid & Linux Kernel Network Tuning (launch_testing, GTest, Pytest, sysctl).
-8. Demo package integrity (CMakeLists.txt, package.xml, Python/C++ sources).
-9. Custom Interfaces, Component Composition, Lifecycle Nodes, tf2 Coordinate Nodes.
-10. Linux Developer Ergonomics (Makefile, systemd units, diagnostics scripts).
+2. Behavior Trees Mission Orchestration (BehaviorTree.CPP, reactive control, Blackboard).
+3. Linux Cloud Headless Simulation (EGL headless rendering, NVIDIA Container Toolkit, Xvfb).
+4. Spatial Geometry & Coordinate Transforms (tf2 tree, quaternions, time travel).
+5. Linux Vision Pipelines (V4L2, DMABUF zero-copy, CUDA, image_transport).
+6. Systemd Daemonization, Watchdog Supervision, and Cgroups Limits.
+7. Observability, Prometheus Metrics Exporter, and Grafana Dashboarding.
+8. Embedded Linux Cross-Compilation (Yocto, meta-ros, aarch64 sysroots).
+9. Testing Pyramid & Linux Kernel Network Tuning (launch_testing, GTest, Pytest, sysctl).
+10. Demo package integrity (CMakeLists.txt, package.xml, Python/C++ sources).
+11. Custom Interfaces, Component Composition, Lifecycle Nodes, tf2, Behavior Trees.
+12. Linux Developer Ergonomics (Makefile, systemd units, diagnostics scripts).
 """
 
 import os
@@ -131,6 +133,16 @@ REQUIRED_TOPICS = {
         "keywords": ["v4l2", "dmabuf", "cuda", "image_transport", "摄像头", "零拷贝", "gstreamer"],
         "weight": 1.0,
         "description": "High-throughput Linux vision pipelines (V4L2, DMABUF zero-copy, CUDA GPU integration)"
+    },
+    "behavior_trees": {
+        "keywords": ["behaviortree", "行为树", "bt.cpp", "blackboard", "fallback", "sequence", "决策", "黑板"],
+        "weight": 1.0,
+        "description": "Behavior Tree task orchestration (BehaviorTree.CPP, AsyncActionNode, Blackboard)"
+    },
+    "headless_simulation_gpu": {
+        "keywords": ["gazebo", "egl", "headless", "仿真", "nvidia-docker", "xvfb", "isaac", "无头"],
+        "weight": 1.0,
+        "description": "Cloud headless 3D physics simulation (EGL rendering, NVIDIA Container Toolkit, Xvfb)"
     }
 }
 
@@ -200,7 +212,7 @@ def evaluate_docs():
     }
 
 def evaluate_demos():
-    """Score demo files: packages, sources, IDL, components, lifecycle, testing, sysctl, systemd, metrics, tf2."""
+    """Score demo files: packages, sources, IDL, components, lifecycle, testing, sysctl, systemd, metrics, tf2, BT."""
     results = {
         "package_xml_valid": 0,
         "package_xml_total": 0,
@@ -224,6 +236,7 @@ def evaluate_demos():
         "health_check_script_valid": 0,
         "metrics_exporter_valid": 0,
         "tf2_demo_valid": 0,
+        "behavior_tree_demo_valid": 0,
         "makefile_valid": 0
     }
 
@@ -358,7 +371,15 @@ def evaluate_demos():
     if has_tf2:
         results["tf2_demo_valid"] = 1
 
-    # 17. Makefile check
+    # 17. Behavior Tree Mission Orchestration package
+    has_bt = any(("BehaviorTree" in cpp.read_text(encoding="utf-8", errors="ignore") or
+                  "BT::" in cpp.read_text(encoding="utf-8", errors="ignore") or
+                  "AsyncActionNode" in cpp.read_text(encoding="utf-8", errors="ignore"))
+                 for cpp in DEMOS_DIR.glob("**/*.cpp"))
+    if has_bt:
+        results["behavior_tree_demo_valid"] = 1
+
+    # 18. Makefile check
     makefile = ROOT_DIR / "Makefile"
     if makefile.exists():
         mf_content = makefile.read_text(encoding="utf-8", errors="ignore")
@@ -423,7 +444,7 @@ def main():
     analogy_score = doc_res["analogy_score"]
 
     # Demo completeness score (0-100)
-    # Expected artifacts in Segment 6 (17 items)
+    # Expected artifacts in Segment 7 (18 items)
     expected_artifacts = [
         demo_res["package_xml_valid"] >= 5,
         demo_res["cmakelists_valid"] >= 4,
@@ -441,13 +462,14 @@ def main():
         demo_res["health_check_script_valid"] == 1,
         demo_res["metrics_exporter_valid"] == 1,
         demo_res["tf2_demo_valid"] == 1,
+        demo_res["behavior_tree_demo_valid"] == 1,
         demo_res["makefile_valid"] == 1
     ]
     demo_completeness = (sum(1 for x in expected_artifacts if x) / len(expected_artifacts)) * 100.0
 
-    # Word count maturity score (0-100, targeting 26,000+ words)
+    # Word count maturity score (0-100, targeting 29,000+ words)
     word_count = doc_res["word_count"]
-    word_count_score = min(100.0, (word_count / 26000.0) * 100.0)
+    word_count_score = min(100.0, (word_count / 29000.0) * 100.0)
 
     # Composite primary score (0-100)
     composite_score = (
@@ -468,10 +490,11 @@ def main():
     print(f"METRIC word_count={word_count}")
 
     # Summary
-    print("\n--- Advanced Evaluation Breakdown (Segment 6) ---")
+    print("\n--- Advanced Evaluation Breakdown (Segment 7) ---")
     print(f"Total Words: {word_count}")
     print(f"Markdown Files: {doc_res.get('file_count', 0)}")
     print(f"Topic Coverage: {topic_cov:.1f}%")
+    print(f"Behavior Tree Demo (.cpp): {'YES' if demo_res['behavior_tree_demo_valid'] else 'NO'}")
     print(f"tf2 Coordinate Transforms (.cpp): {'YES' if demo_res['tf2_demo_valid'] else 'NO'}")
     print(f"Systemd Service File: {'YES' if demo_res['systemd_service_valid'] else 'NO'}")
     print(f"Health Check Script: {'YES' if demo_res['health_check_script_valid'] else 'NO'}")
