@@ -22,6 +22,8 @@ setup(
         'console_scripts': [
             'py_talker = py_topic_demo.talker:main',
             'py_listener = py_topic_demo.listener:main',
+            'py_service_server = py_topic_demo.service_server:main',
+            'py_action_server = py_topic_demo.action_server:main',
         ],
     },
 )

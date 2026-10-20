@@ -16,12 +16,13 @@
 | **Unix Domain Socket / Pipe / TCP** | Topic (发布/订阅) | 基于 DDS 的去中心化、多对多数据流传输，支持内存局部性优化。 |
 | **RPC / HTTP REST API** | Service (请求/响应) | 基于 DDS 实现的双向客户端/服务端调用，具备超时与异步 Future 语义。 |
 | **长期后台任务 (worker thread + cancel)** | Action (动作通信) | 组合了 3 个 Service（目标、取消、结果）与 2 个 Topic（反馈、状态）的状态机。 |
-| **共享内存 (`shm_open`, `mmap`)** | Loaned Messages / Iceoryx | 零拷贝进程间通信（Zero-Copy IPC），避免海量点云/图像的大块内存拷贝。 |
-| **IP 组播 (UDP Multicast 239.255.0.1)** | DDS 节点自发现 (SPDP) | 基于 RTPS 协议在 LAN 内组播广播节点 GUID、端点信息与 QoS，无需集中 Master。 |
+| **共享内存 (`shm_open`, `mmap`)** | iceoryx/loaned_message | 零拷贝进程间通信（Zero-Copy IPC），避免海量点云/图像的大块内存拷贝。 |
+| **IP 组播 (UDP Multicast 239.255.0.1)** | discovery/rtps 节点发现 | 基于 RTPS 协议在 LAN 内组播广播节点 GUID、端点信息与 QoS，无需集中 Master。 |
 | **环境变量 / 动态链接路径 (`LD_LIBRARY_PATH`)** | Workspace Overlay (`AMENT_PREFIX_PATH`) | 分层目录搜索机制，下游 Workspace 优先覆盖上游环境。 |
-| **POSIX 信号 (`SIGINT`, `SIGTERM`)** | `rclcpp::shutdown()` / Lifecycle | 捕获系统退出信号，优雅销毁 DDS 句柄、释放资源并通知集群下线。 |
-| **`systemd` / Supervisor / init** | ROS 2 Launch 系统 | 基于 Python/XML 的多进程生命周期监管、参数注入、环境变量配置与重命名。 |
-| **`strace` / `tcpdump` / `ss`** | `ros2 topic echo`, `ros2 doctor` | 结合 Linux 原生抓包追踪工具与 ROS 2 语义化诊断命令行。 |
+| **POSIX 信号机制 (`Signal / SIGINT / SIGTERM`)** | lifecycle/shutdown | 捕获系统退出信号，优雅销毁 DDS 句柄、释放资源并通知集群下线。 |
+| **服务守护与调度 (`cron/systemd`)** | ROS 2 Launch 系统 | 基于 Python/XML 的多进程生命周期监管、参数注入、环境变量配置与重命名。 |
+| **系统调用与追踪 (`strace`)** | ros2 cli/tracing 诊断 | 结合 Linux 原生抓包追踪工具与 ROS 2 语义化诊断命令行。 |
+| **内核参数与网络调优 (`sysctl`)** | qos/dds profiles 配置 | 通过微调网络传输属性与 DDS 配置文件控制通信行为与资源队列。 |
 
 ---
 
