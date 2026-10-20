@@ -1,0 +1,23 @@
+<root main_tree_to_execute="RobotPatrolMission">
+  <!-- 工业级自主移动机器人巡检行为树定义 -->
+  <BehaviorTree ID="RobotPatrolMission">
+    <Fallback name="root_safety_fallback">
+      
+      <!-- 分支 1: 低电量自愈充电序列 -->
+      <Sequence name="auto_recharge_sequence">
+        <Condition ID="IsBatteryLow" threshold="20.0"/>
+        <Action ID="NavigateToWaypoint" target_goal="Recharge_Dock_01"/>
+        <Action ID="DockAndCharge"/>
+      </Sequence>
+
+      <!-- 分支 2: 常规巡检与感知作业流水线 -->
+      <Sequence name="standard_patrol_pipeline">
+        <Action ID="NavigateToWaypoint" target_goal="Inspection_Point_A"/>
+        <Action ID="ScanBarcodeAndTelemetry"/>
+        <Action ID="NavigateToWaypoint" target_goal="Inspection_Point_B"/>
+        <Action ID="ScanBarcodeAndTelemetry"/>
+      </Sequence>
+
+    </Fallback>
+  </BehaviorTree>
+</root>

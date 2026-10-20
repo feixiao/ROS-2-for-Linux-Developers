@@ -75,6 +75,12 @@
 +  - tf2 时空拓扑树：单父节点约束、`/tf_static` 持久化 QoS 与时间旅行（SLERP 球面插值）
 +  - Linux 极速视觉管道：V4L2 ISP 驱动、DMABUF 句柄流转与 CUDA GPU 显存端到端零拷贝
 +  - Linux 终端 tf2 诊断利器：`view_frames`（PDF 拓扑图）、`tf2_echo` 与 `tf2_monitor`
+
+- **[第 12 章：复杂任务决策编排（BehaviorTree.CPP）与云端无头仿真（EGL / GPU 容器）](docs/12_behavior_trees_and_cloud_simulation.md)**
++  - 决策架构演进：有限状态机（FSM）状态爆炸之痛与行为树（Behavior Tree）层级解耦
++  - BehaviorTree.CPP 核心机制：Tick 调度驱动、黑板（Blackboard）变量共享与 XML 任务解耦
++  - Linux 云端 3D 仿真与无头渲染：EGL 离屏硬件加速直通、NVIDIA Container Toolkit 配置
++  - 虚实同构与仿真时钟（Sim-to-Real）：`/clock` 话题同步与超频加速测试验证
 ---
 
 ## 🛠️ 配套工业级 Demo 工程
@@ -91,6 +97,7 @@ demos/
 ├── cpp_action_demo/     # C++ 动作服务器与客户端 (进度流反馈与取消支持)
 ├── cpp_lifecycle_demo/  # C++ 托管生命周期工程 (LifecycleNode 确定性状态机)
 ├── cpp_tf2_demo/        # C++ 空间坐标变换工程 (动态/静态广播器与查询监听器)
+├── cpp_behavior_tree_demo/# C++ 行为树决策总控工程 (BehaviorTree.CPP 响应式调度)
 ├── launch_demo/         # 生产级 Python Launch 编排工程 (含 YAML 注入与重映射)
 └── docker/              # 开箱即用的 Dockerfile 与 docker-compose.yml 容器化环境
 ```
