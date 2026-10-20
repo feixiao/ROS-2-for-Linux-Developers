@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 """
-Advanced Evaluation Harness for ROS 2 Handbook for Linux Developers (Segment 7).
+Advanced Evaluation Harness for ROS 2 Handbook for Linux Developers (Segment 8).
 Evaluates:
 1. Documentation structure and coverage of Linux-to-ROS2 concepts.
-2. Behavior Trees Mission Orchestration (BehaviorTree.CPP, reactive control, Blackboard).
-3. Linux Cloud Headless Simulation (EGL headless rendering, NVIDIA Container Toolkit, Xvfb).
-4. Spatial Geometry & Coordinate Transforms (tf2 tree, quaternions, time travel).
-5. Linux Vision Pipelines (V4L2, DMABUF zero-copy, CUDA, image_transport).
-6. Systemd Daemonization, Watchdog Supervision, and Cgroups Limits.
-7. Observability, Prometheus Metrics Exporter, and Grafana Dashboarding.
-8. Embedded Linux Cross-Compilation (Yocto, meta-ros, aarch64 sysroots).
-9. Testing Pyramid & Linux Kernel Network Tuning (launch_testing, GTest, Pytest, sysctl).
-10. Demo package integrity (CMakeLists.txt, package.xml, Python/C++ sources).
-11. Custom Interfaces, Component Composition, Lifecycle Nodes, tf2, Behavior Trees.
-12. Linux Developer Ergonomics (Makefile, systemd units, diagnostics scripts).
+2. ros2_control Real-Time Hardware Abstraction (SystemInterface, read/write loops).
+3. Robot Kinematics & Modeling (URDF, Xacro, Joints, Transmissions).
+4. Behavior Trees Mission Orchestration (BehaviorTree.CPP, reactive control, Blackboard).
+5. Linux Cloud Headless Simulation (EGL headless rendering, NVIDIA Container Toolkit, Xvfb).
+6. Spatial Geometry & Coordinate Transforms (tf2 tree, quaternions, time travel).
+7. Linux Vision Pipelines (V4L2, DMABUF zero-copy, CUDA, image_transport).
+8. Systemd Daemonization, Watchdog Supervision, and Cgroups Limits.
+9. Observability, Prometheus Metrics Exporter, and Grafana Dashboarding.
+10. Embedded Linux Cross-Compilation (Yocto, meta-ros, aarch64 sysroots).
+11. Testing Pyramid & Linux Kernel Network Tuning (launch_testing, GTest, Pytest, sysctl).
+12. Demo package integrity (CMakeLists.txt, package.xml, Python/C++ sources).
+13. Custom Interfaces, Component Composition, Lifecycle Nodes, tf2, Behavior Trees, ros2_control.
+14. Linux Developer Ergonomics (Makefile, systemd units, diagnostics scripts).
 """
 
 import os
@@ -143,6 +145,16 @@ REQUIRED_TOPICS = {
         "keywords": ["gazebo", "egl", "headless", "仿真", "nvidia-docker", "xvfb", "isaac", "无头"],
         "weight": 1.0,
         "description": "Cloud headless 3D physics simulation (EGL rendering, NVIDIA Container Toolkit, Xvfb)"
+    },
+    "ros2_control_framework": {
+        "keywords": ["ros2_control", "controller_manager", "hardware_interface", "command_interface", "state_interface", "diff_drive_controller", "实时控制器"],
+        "weight": 1.0,
+        "description": "ros2_control real-time hardware abstraction, SystemInterface, and Controller Manager"
+    },
+    "urdf_xacro_kinematics": {
+        "keywords": ["urdf", "xacro", "joint", "link", "transmission", "动力学", "运动学"],
+        "weight": 1.0,
+        "description": "URDF and Xacro kinematic and dynamic robot description"
     }
 }
 
@@ -212,7 +224,7 @@ def evaluate_docs():
     }
 
 def evaluate_demos():
-    """Score demo files: packages, sources, IDL, components, lifecycle, testing, sysctl, systemd, metrics, tf2, BT."""
+    """Score demo files: packages, sources, IDL, components, lifecycle, testing, sysctl, systemd, metrics, tf2, BT, ros2_control."""
     results = {
         "package_xml_valid": 0,
         "package_xml_total": 0,
@@ -237,6 +249,7 @@ def evaluate_demos():
         "metrics_exporter_valid": 0,
         "tf2_demo_valid": 0,
         "behavior_tree_demo_valid": 0,
+        "ros2_control_demo_valid": 0,
         "makefile_valid": 0
     }
 
@@ -279,7 +292,7 @@ def evaluate_demos():
         results["cpp_patterns_total"] += 1
         try:
             content = cpp.read_text(encoding="utf-8")
-            if "rclcpp" in content:
+            if "rclcpp" in content or "hardware_interface" in content:
                 results["cpp_patterns_valid"] += 1
         except Exception:
             pass
@@ -379,7 +392,15 @@ def evaluate_demos():
     if has_bt:
         results["behavior_tree_demo_valid"] = 1
 
-    # 18. Makefile check
+    # 18. ros2_control Hardware Interface package
+    has_r2c = any(("hardware_interface" in cpp.read_text(encoding="utf-8", errors="ignore") or
+                   "SystemInterface" in cpp.read_text(encoding="utf-8", errors="ignore") or
+                   "CallbackReturn" in cpp.read_text(encoding="utf-8", errors="ignore"))
+                  for cpp in DEMOS_DIR.glob("**/*control*/**/*.cpp"))
+    if has_r2c:
+        results["ros2_control_demo_valid"] = 1
+
+    # 19. Makefile check
     makefile = ROOT_DIR / "Makefile"
     if makefile.exists():
         mf_content = makefile.read_text(encoding="utf-8", errors="ignore")
@@ -444,7 +465,7 @@ def main():
     analogy_score = doc_res["analogy_score"]
 
     # Demo completeness score (0-100)
-    # Expected artifacts in Segment 7 (18 items)
+    # Expected artifacts in Segment 8 (19 items)
     expected_artifacts = [
         demo_res["package_xml_valid"] >= 5,
         demo_res["cmakelists_valid"] >= 4,
@@ -463,13 +484,14 @@ def main():
         demo_res["metrics_exporter_valid"] == 1,
         demo_res["tf2_demo_valid"] == 1,
         demo_res["behavior_tree_demo_valid"] == 1,
+        demo_res["ros2_control_demo_valid"] == 1,
         demo_res["makefile_valid"] == 1
     ]
     demo_completeness = (sum(1 for x in expected_artifacts if x) / len(expected_artifacts)) * 100.0
 
-    # Word count maturity score (0-100, targeting 29,000+ words)
+    # Word count maturity score (0-100, targeting 32,000+ words)
     word_count = doc_res["word_count"]
-    word_count_score = min(100.0, (word_count / 29000.0) * 100.0)
+    word_count_score = min(100.0, (word_count / 32000.0) * 100.0)
 
     # Composite primary score (0-100)
     composite_score = (
@@ -490,10 +512,11 @@ def main():
     print(f"METRIC word_count={word_count}")
 
     # Summary
-    print("\n--- Advanced Evaluation Breakdown (Segment 7) ---")
+    print("\n--- Advanced Evaluation Breakdown (Segment 8) ---")
     print(f"Total Words: {word_count}")
     print(f"Markdown Files: {doc_res.get('file_count', 0)}")
     print(f"Topic Coverage: {topic_cov:.1f}%")
+    print(f"ros2_control Demo (.cpp): {'YES' if demo_res['ros2_control_demo_valid'] else 'NO'}")
     print(f"Behavior Tree Demo (.cpp): {'YES' if demo_res['behavior_tree_demo_valid'] else 'NO'}")
     print(f"tf2 Coordinate Transforms (.cpp): {'YES' if demo_res['tf2_demo_valid'] else 'NO'}")
     print(f"Systemd Service File: {'YES' if demo_res['systemd_service_valid'] else 'NO'}")
