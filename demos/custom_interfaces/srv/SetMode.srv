@@ -1,0 +1,8 @@
+# 请求段: 目标模式与超时设定
+string target_mode
+uint32 timeout_ms
+---
+# 响应段: 执行结果与附带信息
+bool success
+uint32 error_code
+string message

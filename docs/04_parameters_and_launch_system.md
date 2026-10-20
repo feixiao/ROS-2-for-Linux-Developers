@@ -210,3 +210,44 @@ container = ComposableNodeContainer(
 
 **Linux 视角解析**：
 这相当于在单个宿主进程内通过 `dlopen()` 载入两个 `.so`，并在进程内执行器中注册它们。两节点间通信直接使用指针，免除任何进程间上下文切换（Context Switch）与系统调用损耗！
+
+---
+
+## 4.5 确定性进程监管：生命周期节点（Lifecycle Nodes）
+
+在大型机器人或自动驾驶系统中，普通的 Node 存在一个痛点：`main()` 函数启动后立即开始执行，无法严格控制节点间的依赖初始化时序（例如：底盘运动控制器比激光雷达驱动更早启动，导致控制器在未接收到数据时疯狂报错）。
+
+ROS 2 引入了 **Lifecycle Node（托管生命周期节点）**，它为节点赋予了一个受控的有限状态机（FSM）：
+
+```mermaid
+stateDiagram-v2
+    [*] --> Unconfigured: 创建节点
+    Unconfigured --> Inactive: configure() (读取配置、分配资源)
+    Inactive --> Active: activate() (开始发布与接收)
+    Active --> Inactive: deactivate() (暂停收发)
+    Inactive --> Unconfigured: cleanup() (释放资源)
+    Inactive --> Finalized: shutdown() (销毁)
+    Active --> Finalized: shutdown() (销毁)
+    Unconfigured --> Finalized: shutdown() (销毁)
+    Finalized --> [*]
+```
+
+### 核心状态与 Linux 运维对照
+
+1. **`Unconfigured`（未配置）**：进程刚被 `fork/exec` 拉起，内存已分配但未加载配置，也未占用串口/网络套接字等硬件资源。
+2. **`Inactive`（非活动就绪）**：已调用 `on_configure()`，完成配置解析与硬件句柄打开；**但 Publisher 此时处于静默锁死状态**，不会对外产生脏数据流。
+3. **`Active`（运行态）**：调用 `on_activate()`，启动定时器与数据管道，节点全速工作。
+4. **`Finalized`（终结态）**：调用 `on_shutdown()`，完成资源释放与退出。
+
+### CLI 管理命令与编排集成
+
+系统管理员可随时通过终端像使用 `systemctl` 一样管控节点的生命周期：
+```bash
+# 查询节点当前状态
+ros2 lifecycle get /managed_lidar_driver
+
+# 触发状态跃迁
+ros2 lifecycle set /managed_lidar_driver configure
+ros2 lifecycle set /managed_lidar_driver activate
+```
+在 Launch 编排中，可利用 `lifecycle_msgs` 配合事件处理器（`RegisterEventHandler`），实现“雷达驱动状态变为 `Active` 后才拉起导航规划节点”的确定性时序控制。

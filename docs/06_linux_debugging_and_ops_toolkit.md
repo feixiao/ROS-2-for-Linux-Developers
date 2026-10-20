@@ -154,7 +154,41 @@ chrt -p $(pgrep -f "controller_node")
 
 ---
 
-## 6.7 本章总结
+## 6.7 微秒级全链路性能追踪：ros2_tracing 与 Linux LTTng
+
+在复杂的自动驾驶流水线中，一条激光雷达数据从驱动发布、经过点云过滤、障碍物聚类、轨迹规划最终下发给底盘电机，整个链路究竟耗时多久？各节点内部的回调延迟主要消耗在哪个函数？
+
+传统的 `printf` / 日志打印本身具有不可忽视的 I/O 开销与时间失真（Heisenbug）。
+Linux 系统的标杆级低开销追踪工具是 **LTTng（Linux Trace Toolkit: next generation）**。
+ROS 2 原生深度集成了 LTTng 用户态探针（UST - User Space Tracing），形成了 `ros2_tracing` 体系。
+
+### 1. 内置探针点（Built-in Tracepoints）
+在无需修改任何应用代码的前提下，ROS 2 底层自动注入了以下探针：
++- `ros2:rcl_publish`：话题发布发起时刻。
++- `ros2:rclcpp_take`：DDS 队列将数据交付给订阅节点的时刻。
++- `ros2:callback_start` 与 `ros2:callback_end`：每个执行器回调执行的精确起始与结束纳秒级时间戳。
++- `ros2:executor_wait_for_work`：事件循环进入 epoll 休眠与被唤醒的时刻。
+
+### 2. 抓取链路 Trace 数据
+```bash
+# 1. 安装 LTTng 追踪工具链
+sudo apt-get install ros-humble-tracetools ros-humble-ros2trace lttng-tools
+
+# 2. 开启全链路会话记录
+ros2 trace -s autonomous_driving_trace
+
+# 3. 运行你的机器人集群，复现业务流
+# 4. 按 Ctrl+C 停止追踪，数据保存在 ~/.ros/tracing/autonomous_driving_trace
+```
+
+### 3. 可视化与瓶颈分析
+生成的二进制 CTF（Common Trace Format）轨迹可直接导入：
++- **Trace Compass（Eclipse 工业级波形分析器）**：呈现所有线程的调度泳道图、回调耗时甘特图。
++- **Python `tracetools_analysis`**：通过 Jupyter Notebook 自动统计 P99 延迟分布与长尾抖动成因。
+
+---
+
+## 6.8 本章总结
 
 Linux 开发者进入 ROS 2 的最大优势就是拥有一整套系统级工具。
 遇到问题时：

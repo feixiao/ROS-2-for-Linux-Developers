@@ -147,3 +147,46 @@ services:
 ```
 
 通过简单的 `docker compose up -d` 即可在任何安装了 Docker 的 Linux 主机上一键拉起完整的机器人系统。
+
+---
+
+## 7.5 持续集成与自动化流水线（CI/CD with GitHub Actions）
+
+现代 Linux 团队必然追求自动化的代码合并检查与回归测试。
+在 GitHub Actions 或 GitLab CI 中，可直接借助官方容器镜像运行标准 CI 流水线：
+
+```yaml
+name: ROS 2 CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-22.04
+    container:
+      image: ros:humble-ros-base
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install System Build Dependencies
+        run: |
+          apt-get update
+          apt-get install -y python3-colcon-common-extensions ros-humble-example-interfaces
+
+      - name: Build All Packages
+        run: |
+          . /opt/ros/humble/setup.sh
+          colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+
+      - name: Run Tests
+        run: |
+          . /opt/ros/humble/setup.sh
+          colcon test
+          colcon test-result --verbose
+```
+该流水线保证每一次代码提交都在纯净容器沙箱中经历完整的拓扑依赖解析、编译链接与单元测试。

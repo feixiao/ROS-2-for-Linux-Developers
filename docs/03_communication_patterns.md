@@ -126,12 +126,41 @@ sequenceDiagram
     Server-->>Client: 3. Return Result (Service)
 ```
 
----
 
-## 3.5 总结
+## 3.5 自定义接口（ROSIDL）与底层代码生成编译链
 
-- **Topic**：无状态数据流的首选，务必严格关注 QoS 匹配。
-- **Service**：轻量级原子指令的首选，严禁在主事件循环中同步阻塞等待。
-- **Action**：复杂运动控制与耗时任务的工业标准，内置完备的取消机制与反馈流。
+在 Linux 后端服务中，我们通常使用 Protocol Buffers (`.proto`) 或 FlatBuffers 定义跨语言 RPC 契约，并通过 `protoc` 生成 C++/Go/Python 数据结构。
+ROS 2 的接口体系（**ROSIDL - ROS Interface Definition Language**）扮演了完全相同的角色。
 
-下一章我们将深入探讨如何对这些节点进行集中化参数配置（Parameter）以及如何使用 Launch 系统完成工业级多进程拉起与编排。
+### 1. 接口文件类型与语法结构
+
+### 2. ROSIDL 编译生成流水线（Under the Hood）
+当你在 `CMakeLists.txt` 中声明 `rosidl_generate_interfaces()` 时，底层实际发生了以下编译链调用：
+
+```
+-----------------------------------------------------------+
+|      .msg / .srv / .action 文本契约文件定义                |
+-----------------------------------------------------------+
+                             |
+                             v
+-----------------------------------------------------------+
+|          rosidl_default_generators (Python 转换器)        |
+-----------------------------------------------------------+
+        |                    |                     |
+        v                    v                     v
+---------------+    +-----------------+    +---------------+
+| C++ 强类型头文件|    | Python C-扩展绑定|    | DDS 序列化实现 |
+| (.hpp 结构体)  |    | (.cpython-.so)  |    | (CDR 编码器)  |
+---------------+    +-----------------+    +---------------+
+```
+
+1. **类型支持适配（Type Support）**：
+   ROS 2 会为每个接口自动生成针对不同 DDS 供应商的 CDR 序列化适配器（`rosidl_typesupport_fastrtps_cpp`、`rosidl_typesupport_introspection_cpp` 等）。
+2. **内存紧凑性**：
+   编译生成的 C++ 结构体内存对齐规则与 Linux POSIX 内存布局一致，保障了高频序列化与内存拷贝时的 SIMD/CPU 缓存局部性优化。
+
+
+## 3.6 本章总结
+
+
+下一章我们将深入探讨如何对这些节点进行集中化参数配置（Parameter）、生命周期管理（Lifecycle）以及如何使用 Launch 系统完成工业级多进程拉起与编排。

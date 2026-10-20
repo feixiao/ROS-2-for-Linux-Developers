@@ -25,13 +25,14 @@
   - 话题（Topic）与 QoS（服务质量）调优（Reliability、Durability、History）及不兼容陷阱
   - 服务（Service）在单线程事件循环中的自死锁反模式与异步解法
   - 动作（Action）状态机及其底层 3 个 Service + 2 个 Topic 通道解构
+  - 自定义接口契约（ROSIDL 代码生成流水线、CDR 序列化与 Protobuf 对照）
 
 - **[第 4 章：参数系统与多进程编排（Launch 系统）](docs/04_parameters_and_launch_system.md)**
   - 去中心化参数系统：显式声明、强类型校验与动态参数变更监听
   - 结构化 YAML 配置文件与命令行注入
   - 工业级 Python Launch 文件编写实践（条件启动、事件监听、异常重启）
   - 命名空间（Namespace）隔离与话题重映射（Remapping）
-
+  - 组件化容器（ComposableNodeContainer）与生命周期管理（Lifecycle Nodes 状态机）
 - **[第 5 章：高性能进阶与 DDS 网络中间件调优](docs/05_dds_and_high_performance_ipc.md)**
   - DDS 发现机制：SPDP 组播宣告与 `ROS_DOMAIN_ID` 端口数学公式
   - 中间件自由切换：Cyclone DDS vs Fast DDS
@@ -59,8 +60,10 @@
 
 ```
 demos/
+├── custom_interfaces/   # 工业级 ROSIDL 接口工程 (自定义 .msg, .srv, .action)
+├── cpp_composition_demo/# C++ 零拷贝组件化工程 (共享库 dlopen 动态加载)
 ├── cpp_topic_demo/      # C++ 高性能 Pub/Sub 工程 (含 QoS 与 Timer)
-├── py_topic_demo/       # Python 极简异步 Pub/Sub 工程
+├── py_topic_demo/       # Python 全能工程 (Topic, Service, Action 三合一)
 ├── cpp_service_demo/    # C++ 双向 RPC 服务工程 (加法计算与错误处理)
 ├── cpp_action_demo/     # C++ 动作服务器与客户端 (进度流反馈与取消支持)
 ├── launch_demo/         # 生产级 Python Launch 编排工程 (含 YAML 注入与重映射)
@@ -105,4 +108,17 @@ source install/setup.bash
 
 # 4. 运行 Launch 编排
 ros2 launch launch_demo demo.launch.py
+```
+
+### 方式 3：使用 Makefile 自动化运维（Linux 开发者最爱）
+
+本项目根目录提供了即拷即用的 `Makefile`，封装了日常高频操作：
+
+```bash
+make help          # 查看所有可用目标与说明
+make build         # 一键调用 colcon 编译并导出 compile_commands.json
+make test          # 自动化语法校验与完整性测试套件
+make docker-build  # 构建生产级多阶段瘦身镜像
+make docker-up     # 启动容器化集群
+make clean         # 清理 build / install / log 缓存
 ```

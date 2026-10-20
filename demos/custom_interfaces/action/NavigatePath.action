@@ -1,0 +1,13 @@
+# 目标段 (Goal): 路径航点列表与限速
+string[] waypoint_ids
+float32 max_speed_mps
+---
+# 结果段 (Result): 统计结果
+bool all_waypoints_reached
+uint32 completed_count
+float32 total_elapsed_seconds
+---
+# 反馈段 (Feedback): 周期进度回报
+string current_waypoint_id
+uint32 current_index
+float32 distance_to_next_waypoint

@@ -142,7 +142,46 @@ export ROS_LOCALHOST_ONLY=1
 export CYCLONEDDS_URI=file:///path/to/cyclonedds.xml
 ```
 
----
+### 3. Fast DDS 共享内存与传输描述符配置
+若使用默认的 Fast DDS，可通过 `fastdds.xml` 显式开启 Linux POSIX 共享内存传输描述符（`SHMTransportDescriptor`）：
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+  <participant profile_name="shm_participant">
+    <rtps>
+      <userTransports>
+        <!-- 声明使用共享内存段传输 -->
+        <transport_id>shm_transport</transport_id>
+      </userTransports>
+      <useBuiltinTransports>false</useBuiltinTransports>
+    </rtps>
+  </participant>
+
+  <transport_descriptors>
+    <transport_descriptor>
+      <transport_id>shm_transport</transport_id>
+      <type>SHM</type>
+      <!-- 共享内存单条消息段上限 64MB (适合点云与高分辨率视频) -->
+      <maxMessageSize>67108864</maxMessageSize>
+    </transport_descriptor>
+  </transport_descriptors>
+</profiles>
+```
+注入环境变量使之生效：
+```bash
+export FASTRTPS_DEFAULT_PROFILES_FILE=/path/to/fastdds.xml
+```
+
+### 4. Eclipse Iceoryx 守护进程：RouDi
+在跨进程零拷贝中，Iceoryx 依赖一个名为 **RouDi**（Routing & Discovery）的中心看门狗守护进程（类似 Linux 的 `dbus-daemon` 或 `systemd`）：
+- **职责**：在 `/dev/shm` 预分配固定大小的内存池（Memory Pools），充当共享内存段的内存管理单元（MMU）。
+- **启动方式**：
+  ```bash
+  # 在 Linux 终端后台启动 Iceoryx 守护进程
+  iox-roudi -c /etc/iceoryx/roudi_config.toml &
+  ```
+各 ROS 2 节点通过 UNIX Domain Socket 接入 RouDi 完成句柄握手，随后所有数据流均在已映射的物理内存页中高速流转。
 
 ## 5.5 本章总结
 
